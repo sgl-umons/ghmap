@@ -1,0 +1,1097 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "description": "Mapping of GitHub event types to action types.",
+    "author": "Youness Hourri",
+    "created": "2025-12-04",
+    "license": "MIT",
+    "platform": "GitHub"
+  },
+  "parameters": {
+    "event_type_key": "type",
+    "created_at_key": "created_at"
+  },
+  "common_fields": {
+    "event_id": "id",
+    "date": "created_at",
+    "actor": {
+      "id": "actor.id",
+      "login": "actor.login"
+    },
+    "repository": {
+      "id": "repo.id",
+      "name": "repo.name",
+      "organisation": "org.login",
+      "organisation_id": "org.id"
+    }
+  },
+  "actions": {
+    "CommentCommit": {
+      "event": {
+        "type": "CommitCommentEvent",
+        "payload": {
+          "action": "created"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "commit_comment": {
+            "id": "payload.comment.id",
+            "commit": "payload.comment.commit_id",
+            "file_line": "payload.comment.line",
+            "file_path": "payload.comment.path"
+          }
+        }
+      }
+    },
+    "CreateBranch": {
+      "event": {
+        "type": "CreateEvent",
+        "payload": {
+          "ref_type": "branch"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "branch": {
+            "name": "payload.ref",
+            "description": "payload.description"
+          }
+        }
+      }
+    },
+    "DeleteBranch": {
+      "event": {
+        "type": "DeleteEvent",
+        "payload": {
+          "ref_type": "branch"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "branch_name": "payload.ref"
+        }
+      }
+    },
+    "DeleteTag": {
+      "event": {
+        "type": "DeleteEvent",
+        "payload": {
+          "ref_type": "tag"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "tag_name": "payload.ref"
+        }
+      }
+    },
+    "ForkRepository": {
+      "event": {
+        "type": "ForkEvent",
+        "payload": {
+          "action": "forked"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "fork": {
+            "id": "payload.forkee.id",
+            "name": "payload.forkee.full_name",
+            "description": "payload.forkee.description",
+            "main_branch": "payload.forkee.default_branch"
+          }
+        }
+      }
+    },
+    "ManageWikiPage": {
+      "event": {
+        "type": "GollumEvent"
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pages": [
+            {
+              "name": "payload.pages.page_name",
+              "action": "payload.pages.action",
+              "commit": "payload.pages.sha"
+            }
+          ]
+        }
+      }
+    },
+    "CreateIssueComment": {
+      "event": {
+        "type": "IssueCommentEvent",
+        "payload": {
+          "action": "created",
+          "issue": {
+            "html_url": "^https://github\\.com/.+/issues/\\d+$"
+          }
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "issue": {
+            "id": "payload.issue.id",
+            "number": "payload.issue.number",
+            "title": "payload.issue.title",
+            "state": "payload.issue.state",
+            "author": {
+              "id": "payload.issue.user.id",
+              "login": "payload.issue.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.issue.assignees.id",
+                "login": "payload.issue.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.issue.labels.name",
+                "description": "payload.issue.labels.description"
+              }
+            ],
+            "created_date": "payload.issue.created_at",
+            "updated_date": "payload.issue.updated_at",
+            "closed_date": "payload.issue.closed_at"
+          },
+          "comment": {
+            "id": "payload.comment.id",
+            "position": "payload.issue.comments"
+          }
+        }
+      }
+    },
+    "CreatePullRequestComment": {
+      "event": {
+        "type": "IssueCommentEvent",
+        "payload": {
+          "action": "created",
+          "issue": {
+            "html_url": "^https://github\\.com/.+/pull/\\d+$"
+          }
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.issue.id",
+            "number": "payload.issue.number",
+            "title": "payload.issue.title",
+            "state": "payload.issue.state",
+            "author": {
+              "id": "payload.issue.user.id",
+              "login": "payload.issue.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.issue.assignees.id",
+                "login": "payload.issue.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.issue.labels.name",
+                "description": "payload.issue.labels.description"
+              }
+            ],
+            "created_date": "payload.issue.created_at",
+            "updated_date": "payload.issue.updated_at",
+            "closed_date": "payload.issue.closed_at",
+            "merged_date": "payload.issue.pull_request.merged_at"
+          },
+          "comment": {
+            "id": "payload.comment.id",
+            "position": "payload.issue.comments"
+          }
+        }
+      }
+    },
+    "CloseIssue": {
+      "event": {
+        "type": "IssuesEvent",
+        "payload": {
+          "action": "closed"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "issue": {
+            "id": "payload.issue.id",
+            "number": "payload.issue.number",
+            "title": "payload.issue.title",
+            "state": "payload.issue.state",
+            "author": {
+              "id": "payload.issue.user.id",
+              "login": "payload.issue.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.issue.assignees.id",
+                "login": "payload.issue.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.issue.labels.name",
+                "description": "payload.issue.labels.description"
+              }
+            ],
+            "created_date": "payload.issue.created_at",
+            "updated_date": "payload.issue.updated_at",
+            "closed_date": "payload.issue.closed_at"
+          }
+        }
+      }
+    },
+    "OpenIssue": {
+      "event": {
+        "type": "IssuesEvent",
+        "payload": {
+          "action": "opened"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "issue": {
+            "id": "payload.issue.id",
+            "number": "payload.issue.number",
+            "title": "payload.issue.title",
+            "state": "payload.issue.state",
+            "author": {
+              "id": "payload.issue.user.id",
+              "login": "payload.issue.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.issue.assignees.id",
+                "login": "payload.issue.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.issue.labels.name",
+                "description": "payload.issue.labels.description"
+              }
+            ],
+            "created_date": "payload.issue.created_at",
+            "updated_date": "payload.issue.updated_at",
+            "closed_date": "payload.issue.closed_at"
+          }
+        }
+      }
+    },
+    "ReopenIssue": {
+      "event": {
+        "type": "IssuesEvent",
+        "payload": {
+          "action": "reopened"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "issue": {
+            "id": "payload.issue.id",
+            "number": "payload.issue.number",
+            "title": "payload.issue.title",
+            "state": "payload.issue.state",
+            "author": {
+              "id": "payload.issue.user.id",
+              "login": "payload.issue.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.issue.assignees.id",
+                "login": "payload.issue.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.issue.labels.name",
+                "description": "payload.issue.labels.description"
+              }
+            ],
+            "created_date": "payload.issue.created_at",
+            "updated_date": "payload.issue.updated_at",
+            "closed_date": "payload.issue.closed_at"
+          }
+        }
+      }
+    },
+    "AddMember": {
+      "event": {
+        "type": "MemberEvent",
+        "payload": {
+          "action": "added"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "member": {
+            "id": "payload.member.id",
+            "login": "payload.member.login"
+          }
+        }
+      }
+    },
+    "MakeRepositoryPublic": {
+      "event": {
+        "type": "PublicEvent"
+      },
+      "attributes": {
+        "include_common_fields": true
+      }
+    },
+    "MergePullRequest": {
+      "event": {
+        "type": "PullRequestEvent",
+        "payload": {
+          "action": "merged"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.pull_request.assignees.id",
+                "login": "payload.pull_request.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.pull_request.labels.name",
+                "description": "payload.pull_request.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged": "payload.pull_request.merged"
+          }
+        }
+      }
+    },
+    "ClosePullRequest": {
+      "event": {
+        "type": "PullRequestEvent",
+        "payload": {
+          "action": "closed"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.pull_request.assignees.id",
+                "login": "payload.pull_request.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.pull_request.labels.name",
+                "description": "payload.pull_request.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged": "payload.pull_request.merged"
+          }
+        }
+      }
+    },
+    "OpenPullRequest": {
+      "event": {
+        "type": "PullRequestEvent",
+        "payload": {
+          "action": "opened"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.pull_request.assignees.id",
+                "login": "payload.pull_request.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.pull_request.labels.name",
+                "description": "payload.pull_request.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged": "payload.pull_request.merged"
+          }
+        }
+      }
+    },
+    "ReopenPullRequest": {
+      "event": {
+        "type": "PullRequestEvent",
+        "payload": {
+          "action": "reopened"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.pull_request.assignees.id",
+                "login": "payload.pull_request.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.pull_request.labels.name",
+                "description": "payload.pull_request.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged": "payload.pull_request.merged"
+          }
+        }
+      }
+    },
+    "CreatePullRequestReviewComment": {
+      "event": {
+        "type": "PullRequestReviewCommentEvent",
+        "payload": {
+          "action": "created"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "labels": [
+              {
+                "name": "payload.pull_request.labels.name",
+                "description": "payload.pull_request.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged_date": "payload.pull_request.pull_request.merged_at"
+          },
+          "review": {
+            "id": "payload.comment.pull_request_review_id",
+            "updated_date": "payload.comment.updated_at"
+          },
+          "comment": {
+            "id": "payload.comment.id",
+            "parent_comment_id": "payload.comment.in_reply_to_id"
+          }
+        }
+      }
+    },
+    "CreatePullRequestReview": {
+      "event": {
+        "type": "PullRequestReviewEvent",
+        "payload": {
+          "action": "created"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "labels": [
+              {
+                "name": "payload.pull_request.labels.name",
+                "description": "payload.pull_request.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged_date": "payload.pull_request.pull_request.merged_at"
+          },
+          "review": {
+            "id": "payload.review.id",
+            "submitted_date": "payload.review.submitted_at"
+          }
+        }
+      }
+    },
+    "PushCommits": {
+      "event": {
+        "type": "PushEvent"
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "push": {
+            "id": "payload.push_id",
+            "ref": "payload.ref",
+            "commits": "payload.size"
+          }
+        }
+      }
+    },
+    "PublishRelease": {
+      "event": {
+        "type": "ReleaseEvent",
+        "payload": {
+          "action": "published"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "release": {
+            "id": "payload.release.id",
+            "name": "payload.release.name",
+            "tag": "payload.release.tag_name",
+            "author": {
+              "id": "payload.release.author.id",
+              "login": "payload.release.author.login"
+            },
+            "draft": "payload.release.draft",
+            "prerelease": "payload.release.prerelease",
+            "created_date": "payload.release.created_at"
+          }
+        }
+      }
+    },
+    "StarRepository": {
+      "event": {
+        "type": "WatchEvent",
+        "payload": {
+          "action": "started"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true
+      }
+    },
+    "CreateDiscussion": {
+      "event": {
+        "type": "DiscussionEvent",
+        "payload": {
+          "action": "created"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "discussion": {
+            "id": "payload.discussion.id",
+            "number": "payload.discussion.number",
+            "title": "payload.discussion.title",
+            "state": "payload.pull_request.state",
+            "category": {
+              "id": "payload.discussion.category.id",
+              "name": "payload.discussion.category.name",
+              "description": "payload.discussion.category.description",
+              "created_date": "payload.discussion.category.created_at",
+              "updated_date": "payload.discussion.category.updated_at"
+            },
+            "author": {
+              "id": "payload.discussion.user.id",
+              "login": "payload.discussion.user.login"
+            },
+            "labels": [
+              {
+                "name": "payload.discussion.labels.name",
+                "description": "payload.discussion.labels.description"
+              }
+            ],
+            "created_date": "payload.discussion.created_at",
+            "updated_date": "payload.discussion.updated_at"
+          }
+        }
+      }
+    },
+    "AssignIssue": {
+      "event": {
+        "type": "IssuesEvent",
+        "payload": {
+          "action": "assigned"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "issue": {
+            "id": "payload.issue.id",
+            "number": "payload.issue.number",
+            "title": "payload.issue.title",
+            "state": "payload.issue.state",
+            "author": {
+              "id": "payload.issue.user.id",
+              "login": "payload.issue.user.login"
+            },
+            "assignee": {
+              "id": "payload.issue.assignee.id",
+              "login": "payload.issue.assignee.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.issue.assignees.id",
+                "login": "payload.issue.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.issue.labels.name",
+                "description": "payload.issue.labels.description"
+              }
+            ],
+            "created_date": "payload.issue.created_at",
+            "updated_date": "payload.issue.updated_at",
+            "closed_date": "payload.issue.closed_at"
+          }
+        }
+      }
+    },
+    "LabelIssue": {
+      "event": {
+        "type": "IssuesEvent",
+        "payload": {
+          "action": "labeled"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "issue": {
+            "id": "payload.issue.id",
+            "number": "payload.issue.number",
+            "title": "payload.issue.title",
+            "state": "payload.issue.state",
+            "author": {
+              "id": "payload.issue.user.id",
+              "login": "payload.issue.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.issue.assignees.id",
+                "login": "payload.issue.assignees.login"
+              }
+            ],
+            "label": {
+              "name": "payload.label.name",
+              "description": "payload.label.description"
+            },
+            "labels": [
+              {
+                "name": "payload.labels.name",
+                "description": "payload.labels.description"
+              }
+            ],
+            "created_date": "payload.issue.created_at",
+            "updated_date": "payload.issue.updated_at",
+            "closed_date": "payload.issue.closed_at"
+          }
+        }
+      }
+    },
+    "UnassignIssue": {
+      "event": {
+        "type": "IssuesEvent",
+        "payload": {
+          "action": "unassigned"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "issue": {
+            "id": "payload.issue.id",
+            "number": "payload.issue.number",
+            "title": "payload.issue.title",
+            "state": "payload.issue.state",
+            "author": {
+              "id": "payload.issue.user.id",
+              "login": "payload.issue.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.issue.assignees.id",
+                "login": "payload.issue.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.issue.labels.name",
+                "description": "payload.issue.labels.description"
+              }
+            ],
+            "created_date": "payload.issue.created_at",
+            "updated_date": "payload.issue.updated_at",
+            "closed_date": "payload.issue.closed_at"
+          }
+        }
+      }
+    },
+    "UnlabelIssue": {
+      "event": {
+        "type": "IssuesEvent",
+        "payload": {
+          "action": "unlabeled"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "issue": {
+            "id": "payload.issue.id",
+            "number": "payload.issue.number",
+            "title": "payload.issue.title",
+            "state": "payload.issue.state",
+            "author": {
+              "id": "payload.issue.user.id",
+              "login": "payload.issue.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.issue.assignees.id",
+                "login": "payload.issue.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.issue.labels.name",
+                "description": "payload.issue.labels.description"
+              }
+            ],
+            "created_date": "payload.issue.created_at",
+            "updated_date": "payload.issue.updated_at",
+            "closed_date": "payload.issue.closed_at"
+          }
+        }
+      }
+    },
+    "AssignPullRequest": {
+      "event": {
+        "type": "PullRequestEvent",
+        "payload": {
+          "action": "assigned"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.pull_request.assignees.id",
+                "login": "payload.pull_request.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.pull_request.labels.name",
+                "description": "payload.pull_request.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged": "payload.pull_request.merged"
+          }
+        }
+      }
+    },
+    "LabelPullRequest": {
+      "event": {
+        "type": "PullRequestEvent",
+        "payload": {
+          "action": "labeled"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.pull_request.assignees.id",
+                "login": "payload.pull_request.assignees.login"
+              }
+            ],
+            "label": {
+              "name": "payload.label.name",
+              "description": "payload.label.description"
+            },
+            "labels": [
+              {
+                "name": "payload.labels.name",
+                "description": "payload.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged": "payload.pull_request.merged"
+          }
+        }
+      }
+    },
+    "UnassignPullRequest": {
+      "event": {
+        "type": "PullRequestEvent",
+        "payload": {
+          "action": "unassigned"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.pull_request.assignees.id",
+                "login": "payload.pull_request.assignees.login"
+              }
+            ],
+            "labels": [
+              {
+                "name": "payload.pull_request.labels.name",
+                "description": "payload.pull_request.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged": "payload.pull_request.merged"
+          }
+        }
+      }
+    },
+    "UnlabelPullRequest": {
+      "event": {
+        "type": "PullRequestEvent",
+        "payload": {
+          "action": "unlabeled"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "assignees": [
+              {
+                "id": "payload.pull_request.assignees.id",
+                "login": "payload.pull_request.assignees.login"
+              }
+            ],
+            "label": {
+              "name": "payload.label.name",
+              "description": "payload.label.description"
+            },
+            "labels": [
+              {
+                "name": "payload.labels.name",
+                "description": "payload.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged": "payload.pull_request.merged"
+          }
+        }
+      }
+    },
+    "DismissPullRequestReview": {
+      "event": {
+        "type": "PullRequestReviewEvent",
+        "payload": {
+          "action": "dismissed"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "labels": [
+              {
+                "name": "payload.pull_request.labels.name",
+                "description": "payload.pull_request.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged_date": "payload.pull_request.pull_request.merged_at"
+          },
+          "review": {
+            "id": "payload.review.id",
+            "submitted_date": "payload.review.submitted_at",
+            "author": {
+              "id": "payload.review.user.id",
+              "login": "payload.review.user.login"
+            }
+          }
+        }
+      }
+    },
+    "UpdatePullRequestReview": {
+      "event": {
+        "type": "PullRequestReviewEvent",
+        "payload": {
+          "action": "updated"
+        }
+      },
+      "attributes": {
+        "include_common_fields": true,
+        "details": {
+          "pull_request": {
+            "id": "payload.pull_request.id",
+            "number": "payload.pull_request.number",
+            "title": "payload.pull_request.title",
+            "state": "payload.pull_request.state",
+            "author": {
+              "id": "payload.pull_request.user.id",
+              "login": "payload.pull_request.user.login"
+            },
+            "labels": [
+              {
+                "name": "payload.pull_request.labels.name",
+                "description": "payload.pull_request.labels.description"
+              }
+            ],
+            "created_date": "payload.pull_request.created_at",
+            "updated_date": "payload.pull_request.updated_at",
+            "closed_date": "payload.pull_request.closed_at",
+            "merged_date": "payload.pull_request.pull_request.merged_at"
+          },
+          "review": {
+            "id": "payload.review.id",
+            "submitted_date": "payload.review.submitted_at",
+            "author": {
+              "id": "payload.review.user.id",
+              "login": "payload.review.user.login"
+            }
+          }
+        }
+      }
+    },
+    "UnknownAction": {
+      "event": {
+        "type": "*"
+      },
+      "attributes": {
+        "include_common_fields": true
+      }
+    }
+  }
+}
