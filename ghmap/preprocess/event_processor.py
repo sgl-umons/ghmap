@@ -11,7 +11,7 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
     A class to process events, removing unwanted events and filtering redundant review events.
     """
 
-    def __init__(self, platform: str = 'GitHub', progress_bar: bool = True):
+    def __init__(self, platform: str = 'github', progress_bar: bool = True):
         self.platform = platform
         self.progress_bar = progress_bar
         self.processed_ids = set()
@@ -150,7 +150,7 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
         events = self._remove_unwanted_repos(events, repos)
         events = self._remove_unwanted_orgs(events, orgs)
 
-        if self.platform == "GitHub":
+        if self.platform == "github":
             events = self._filter_redundant_review_events(events)
 
         return events

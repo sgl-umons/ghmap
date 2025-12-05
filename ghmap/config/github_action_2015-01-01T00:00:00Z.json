@@ -5,7 +5,7 @@
     "author": "Youness Hourri",
     "created": "2024-10-07",
     "license": "MIT",
-    "platform": "GitHub"
+    "platform": "github"
   },
   "parameters": {
     "event_type_key": "type",
