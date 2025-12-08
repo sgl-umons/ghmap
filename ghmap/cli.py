@@ -73,12 +73,12 @@ def find_valid_mappings(platform: str, event_date: datetime) -> Dict[str, Path]:
 
     # Sort versions descending to find latest valid one
     sorted_action_versions = sorted(
-        [v for v in action_mappings.keys() if v <= event_date],
+        [v for v in action_mappings if v <= event_date],
         reverse=True
     )
 
     sorted_activity_versions = sorted(
-        [v for v in activity_mappings.keys() if v <= event_date],
+        [v for v in activity_mappings if v <= event_date],
         reverse=True
     )
 
@@ -97,11 +97,24 @@ def split_events_by_mapping_versions(
     events: List[Dict], platform: str
 ) -> Dict[Tuple[datetime, datetime], List[Dict]]:
     """Split events into time periods based on available mapping versions."""
+
     config_dir = Path(files("ghmap").joinpath("config"))
 
-    # Get all unique version dates for this platform
-    version_dates = set()
+    version_dates = _get_version_dates(config_dir, platform)
+    if not version_dates:
+        return {(datetime.min.replace(tzinfo=timezone.utc),
+                 datetime.max.replace(tzinfo=timezone.utc)): events}
 
+    time_periods = _create_time_periods(sorted(version_dates))
+    events_by_period = _assign_events_to_periods(events, time_periods)
+
+    # Remove empty periods
+    return {k: v for k, v in events_by_period.items() if v}
+
+
+def _get_version_dates(config_dir: Path, platform: str) -> set:
+    """Retrieve all unique mapping version dates for a platform."""
+    version_dates = set()
     for mapping_file in config_dir.glob(f"{platform}_*.json"):
         try:
             file_platform, version_date = extract_version_info(mapping_file.name)
@@ -109,215 +122,171 @@ def split_events_by_mapping_versions(
                 version_dates.add(version_date)
         except (ValueError, KeyError):
             continue
+    return version_dates
 
-    if not version_dates:
-        # No versioned mappings found, use all events in one batch
-        return {(datetime.min.replace(tzinfo=timezone.utc),
-                datetime.max.replace(tzinfo=timezone.utc)): events}
 
-    # Sort version dates
-    sorted_versions = sorted(version_dates)
+def _create_time_periods(sorted_versions: List[datetime]) -> List[Tuple[datetime, datetime]]:
+    """Create time periods from sorted version dates."""
+    periods = []
+    for i, start_date in enumerate(sorted_versions):
+        end_date = sorted_versions[i + 1] if i + 1 < len(sorted_versions) else datetime.max.replace(tzinfo=timezone.utc)
+        periods.append((start_date, end_date))
+    return periods
 
-    # Create time periods
-    time_periods = []
-    for i, version_date in enumerate(sorted_versions):
-        start_date = version_date
-        end_date = (
-            sorted_versions[i + 1]
-            if i + 1 < len(sorted_versions)
-            else datetime.max.replace(tzinfo=timezone.utc)
-        )
-        time_periods.append((start_date, end_date))
 
-    # Split events into periods
-    events_by_period = {}
-    for period in time_periods:
-        events_by_period[period] = []
+def _assign_events_to_periods(events: List[Dict], time_periods: List[Tuple[datetime, datetime]]) -> Dict[Tuple[datetime, datetime], List[Dict]]:
+    """Assign each event to its corresponding time period."""
+    events_by_period = {period: [] for period in time_periods}
 
     for event in events:
-        # Extract event date (assuming standard GitHub event structure)
-        event_date_str = event.get('created_at', '')
-        if not event_date_str:
-            # Skip events without date
+        event_date = _parse_event_date(event.get('created_at'))
+        if not event_date:
             continue
 
-        try:
-            event_date = datetime.fromisoformat(event_date_str.replace('Z', '+00:00'))
-        except ValueError:
-            # Try alternative format
-            event_date = datetime.strptime(event_date_str, '%Y-%m-%dT%H:%M:%S%z')
-
-        # Find which period this event belongs to
         for period_start, period_end in time_periods:
             if period_start <= event_date < period_end:
                 events_by_period[(period_start, period_end)].append(event)
                 break
 
-    # Remove empty periods
-    events_by_period = {k: v for k, v in events_by_period.items() if v}
-
     return events_by_period
+
+
+def _parse_event_date(date_str: str) -> datetime | None:
+    """Parse the event date string into a datetime object."""
+    if not date_str:
+        return None
+    try:
+        return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+    except ValueError:
+        try:
+            return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S%z')
+        except ValueError:
+            return None
+
+
+import argparse
+from datetime import datetime
+from typing import List, Dict
+# Assume EventProcessor, ActionMapper, ActivityMapper, load_json_file, save_to_jsonl_file, split_events_by_mapping_versions, find_valid_mappings are imported
 
 
 def main():
     """Parse arguments and run the event-to-activity mapping pipeline."""
+    args = _parse_args()
+
+    try:
+        all_actions, all_activities = _process_events(args)
+        _save_results(all_actions, all_activities, args.output_actions, args.output_activities)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        print(f"An error occurred: {e}")
+
+
+def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Process GitHub events into structured activities."
     )
-    parser.add_argument(
-        '--raw-events',
-        required=True,
-        help="Path to the folder containing raw events."
-    )
-    parser.add_argument(
-        '--output-actions',
-        required=True,
-        help="Path to the output file for mapped actions."
-    )
-    parser.add_argument(
-        '--output-activities',
-        required=True,
-        help="Path to the output file for mapped activities."
-    )
-    parser.add_argument(
-        '--actors-to-remove',
-        nargs='*',
-        default=[],
-        help="List of actors to remove from the raw events."
-    )
-    parser.add_argument(
-        '--repos-to-remove',
-        nargs='*',
-        default=[],
-        help="List of repositories to remove from the raw events."
-    )
-    parser.add_argument(
-        '--orgs-to-remove',
-        nargs='*',
-        default=[],
-        help="List of organizations to remove from the raw events."
-    )
-    parser.add_argument(
-        '--platform',
-        default='github',
-        help="Platform to use for mapping (default: github)."
-    )
-    parser.add_argument(
-        '--disable-progress-bar',
-        action='store_false',
-        dest='progress_bar',
-        help="Disable the progress bar display."
-    )
-    parser.add_argument(
-        '--custom-action-mapping',
-        default=None,
-        help='Path to a custom event to action mapping JSON file.'
-    )
-    parser.add_argument(
-        '--custom-activity-mapping',
-        default=None,
-        help='Path to a custom action to activity mapping JSON file.'
-    )
-    args = parser.parse_args()
+    parser.add_argument('--raw-events', required=True, help="Path to the folder containing raw events.")
+    parser.add_argument('--output-actions', required=True, help="Path to the output file for mapped actions.")
+    parser.add_argument('--output-activities', required=True, help="Path to the output file for mapped activities.")
+    parser.add_argument('--actors-to-remove', nargs='*', default=[], help="List of actors to remove from the raw events.")
+    parser.add_argument('--repos-to-remove', nargs='*', default=[], help="List of repositories to remove from the raw events.")
+    parser.add_argument('--orgs-to-remove', nargs='*', default=[], help="List of organizations to remove from the raw events.")
+    parser.add_argument('--platform', default='github', help="Platform to use for mapping (default: github).")
+    parser.add_argument('--disable-progress-bar', action='store_false', dest='progress_bar', help="Disable the progress bar display.")
+    parser.add_argument('--custom-action-mapping', default=None, help='Path to a custom event to action mapping JSON file.')
+    parser.add_argument('--custom-activity-mapping', default=None, help='Path to a custom action to activity mapping JSON file.')
+    return parser.parse_args()
 
-    try:
-        all_actions = []
-        all_activities = []
 
-        # Step 0: Event Preprocessing
-        print("Step 0: Preprocessing events...")
-        # We need platform to pass to EventProcessor, but we'll auto-detect
-        processor = EventProcessor(args.platform, progress_bar=args.progress_bar)
-        events = processor.process(
-            args.raw_events,
-            args.actors_to_remove,
-            args.repos_to_remove,
-            args.orgs_to_remove
-        )
+def _process_events(args: argparse.Namespace) -> (List[Dict], List[Dict]):
+    """Process raw events into actions and activities."""
+    print("Step 0: Preprocessing events...")
+    processor = EventProcessor(args.platform, progress_bar=args.progress_bar)
+    events = processor.process(args.raw_events, args.actors_to_remove, args.repos_to_remove, args.orgs_to_remove)
 
-        # Step 0.5: Apply custom mappings if provided
-        if args.custom_action_mapping and args.custom_activity_mapping:
-            print("Using custom mappings, skipping automatic mapping detection...")
+    # If custom mappings provided, skip automatic mapping
+    if args.custom_action_mapping and args.custom_activity_mapping:
+        return _apply_custom_mappings(events, args)
 
-            # Load custom action mapping if provided
-            if args.custom_action_mapping:
-                action_mapping = load_json_file(args.custom_action_mapping)
-                action_mapper = ActionMapper(action_mapping, progress_bar=args.progress_bar)
-                all_actions = action_mapper.map(events)
-            else:
-                all_actions = []  # or keep empty
+    # Automatic mapping
+    all_actions = []
+    all_activities = []
 
-            # Load custom activity mapping if provided
-            if args.custom_activity_mapping:
-                activity_mapping = load_json_file(args.custom_activity_mapping)
-                activity_mapper = ActivityMapper(activity_mapping, progress_bar=args.progress_bar)
-                all_activities = activity_mapper.map(all_actions)
-            else:
-                all_activities = []
+    events_by_period = split_events_by_mapping_versions(events, args.platform)
+    if not events_by_period:
+        print("No events to process after filtering.")
+        return all_actions, all_activities
 
-            # Save results immediately and exit
-            if all_actions:
-                save_to_jsonl_file(all_actions, args.output_actions)
-                print(f"Total {len(all_actions)} actions saved to: {args.output_actions}")
+    print(f"Found {len(events_by_period)} time period(s) based on mapping versions.")
+    for (period_start, period_end), period_events in events_by_period.items():
+        if not period_events:
+            continue
+        _process_period(period_events, period_start, period_end, args, all_actions, all_activities)
 
-            if all_activities:
-                save_to_jsonl_file(all_activities, args.output_activities)
-                print(f"Total {len(all_activities)} activities saved to: {args.output_activities}")
+    return all_actions, all_activities
 
-            return  # Exit main, skip automatic mapping
 
-        # Split events by mapping versions
-        print(f"Splitting events by {args.platform} mapping versions...")
-        events_by_period = split_events_by_mapping_versions(events, args.platform)
+def _apply_custom_mappings(events: List[Dict], args: argparse.Namespace) -> (List[Dict], List[Dict]):
+    """Apply custom action and activity mappings if provided."""
+    print("Using custom mappings, skipping automatic mapping detection...")
+    all_actions, all_activities = [], []
 
-        if not events_by_period:
-            print("No events to process after filtering.")
-            return
+    if args.custom_action_mapping:
+        action_mapping = load_json_file(args.custom_action_mapping)
+        action_mapper = ActionMapper(action_mapping, progress_bar=args.progress_bar)
+        all_actions = action_mapper.map(events)
 
-        print(f"Found {len(events_by_period)} time period(s) based on mapping versions.")
+    if args.custom_activity_mapping:
+        activity_mapping = load_json_file(args.custom_activity_mapping)
+        activity_mapper = ActivityMapper(activity_mapping, progress_bar=args.progress_bar)
+        all_activities = activity_mapper.map(all_actions)
 
-        # Process each time period with its appropriate mappings
-        for (period_start, period_end), period_events in events_by_period.items():
-            if not period_events:
-                continue
+    if all_actions:
+        save_to_jsonl_file(all_actions, args.output_actions)
+        print(f"Total {len(all_actions)} actions saved to: {args.output_actions}")
 
-            print(f"\nProcessing period: {period_start} to {period_end}")
-            print(f"  Events in period: {len(period_events)}")
+    if all_activities:
+        save_to_jsonl_file(all_activities, args.output_activities)
+        print(f"Total {len(all_activities)} activities saved to: {args.output_activities}")
 
-            # Find valid mappings for this period (use middle point of period)
-            period_mid = period_start + (period_end - period_start) / 2
-            valid_mappings = find_valid_mappings(args.platform, period_mid)
+    return all_actions, all_activities
 
-            if not valid_mappings['action'] or not valid_mappings['activity']:
-                print(f"  Warning: No valid mappings found for this period. Skipping.")
-                continue
 
-            print(f"  Using action mapping: {valid_mappings['action'].name}")
-            print(f"  Using activity mapping: {valid_mappings['activity'].name}")
+def _process_period(period_events: List[Dict], period_start: datetime, period_end: datetime, args: argparse.Namespace, all_actions: List[Dict], all_activities: List[Dict]):
+    """Process events for a single time period."""
+    print(f"\nProcessing period: {period_start} to {period_end}")
+    print(f"  Events in period: {len(period_events)}")
 
-            # Step 1: Event to Action Mapping
-            action_mapping = load_json_file(valid_mappings['action'])
-            action_mapper = ActionMapper(action_mapping, progress_bar=args.progress_bar)
-            actions = action_mapper.map(period_events)
-            all_actions.extend(actions)
+    period_mid = period_start + (period_end - period_start) / 2
+    valid_mappings = find_valid_mappings(args.platform, period_mid)
 
-            # Step 2: Action to Activity Mapping
-            activity_mapping = load_json_file(valid_mappings['activity'])
-            activity_mapper = ActivityMapper(activity_mapping, progress_bar=args.progress_bar)
-            activities = activity_mapper.map(actions)
-            all_activities.extend(activities)
+    if not valid_mappings['action'] or not valid_mappings['activity']:
+        print(f"  Warning: No valid mappings found for this period. Skipping.")
+        return
 
-        # Save all results
-        if all_actions:
-            save_to_jsonl_file(all_actions, args.output_actions)
-            print(f"\nTotal {len(all_actions)} actions saved to: {args.output_actions}")
+    print(f"  Using action mapping: {valid_mappings['action'].name}")
+    print(f"  Using activity mapping: {valid_mappings['activity'].name}")
 
-        if all_activities:
-            save_to_jsonl_file(all_activities, args.output_activities)
-            print(f"Total {len(all_activities)} activities saved to: {args.output_activities}")
+    # Step 1: Event to Action Mapping
+    action_mapping = load_json_file(valid_mappings['action'])
+    action_mapper = ActionMapper(action_mapping, progress_bar=args.progress_bar)
+    actions = action_mapper.map(period_events)
+    all_actions.extend(actions)
 
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        print(f"An error occurred: {e}")
+    # Step 2: Action to Activity Mapping
+    activity_mapping = load_json_file(valid_mappings['activity'])
+    activity_mapper = ActivityMapper(activity_mapping, progress_bar=args.progress_bar)
+    activities = activity_mapper.map(actions)
+    all_activities.extend(activities)
+
+
+def _save_results(all_actions: List[Dict], all_activities: List[Dict], output_actions: str, output_activities: str):
+    if all_actions:
+        save_to_jsonl_file(all_actions, output_actions)
+        print(f"\nTotal {len(all_actions)} actions saved to: {output_actions}")
+    if all_activities:
+        save_to_jsonl_file(all_activities, output_activities)
+        print(f"Total {len(all_activities)} activities saved to: {output_activities}")
 
 
 if __name__ == '__main__':
