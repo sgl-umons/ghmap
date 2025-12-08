@@ -136,11 +136,20 @@ class ActionMapper: # pylint: disable=too-few-public-methods
                 return None
         return value
 
-    def map(self, events: List[Dict]) -> List[Dict]:
-        """Maps events to high-level actions using mapping configuration."""
-        all_mapped_actions = []
+    def map(self, events: List[Dict], mapping_strategy: str = "flexible") -> List[Dict]:
+        """
+        Maps events to high-level actions using mapping configuration.
 
-        for event_record in tqdm(events, desc="Mapping events to actions", unit="event", disable=not self.progress_bar): # pylint: disable=line-too-long
+        mapping_strategy: "strict" or "flexible"
+        - strict: raise an error on UnknownAction
+        - flexible: tolerate UnknownAction and issue a warning once
+        """
+        all_mapped_actions = []
+        unknown_warning_issued = False  # only warn once in flexible mode
+
+        for event_record in tqdm(
+            events, desc="Mapping events to actions", unit="event", disable=not self.progress_bar
+        ):
             if 'payload' in event_record:
                 event_record = self._deserialize_payload(event_record)
             event_record = self._convert_date_to_iso(event_record)
@@ -162,11 +171,23 @@ class ActionMapper: # pylint: disable=too-few-public-methods
                     all_mapped_actions.append(mapped_action)
                     break
             else:
-                mapped_action = self._extract_attributes(
-                    event_record,
-                    self.action_mapping['actions']['UnknownAction'],
-                    'UnknownAction'
-                )
-                all_mapped_actions.append(mapped_action)
+                # Handle UnknownAction based on strategy
+                if mapping_strategy == "strict":
+                    raise ValueError(
+                        f"UnknownAction encountered for event: {event_record}"
+                    )
+                elif mapping_strategy == "flexible":
+                    if not unknown_warning_issued:
+                        print("Warning: Some actions were not identified and mapped as UnknownAction.")
+                        unknown_warning_issued = True
+
+                    mapped_action = self._extract_attributes(
+                        event_record,
+                        self.action_mapping['actions']['UnknownAction'],
+                        'UnknownAction'
+                    )
+                    all_mapped_actions.append(mapped_action)
+                else:
+                    raise ValueError(f"Invalid mapping_strategy: {mapping_strategy}")
 
         return all_mapped_actions
