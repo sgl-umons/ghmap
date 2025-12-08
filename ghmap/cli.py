@@ -129,12 +129,19 @@ def _create_time_periods(sorted_versions: List[datetime]) -> List[Tuple[datetime
     """Create time periods from sorted version dates."""
     periods = []
     for i, start_date in enumerate(sorted_versions):
-        end_date = sorted_versions[i + 1] if i + 1 < len(sorted_versions) else datetime.max.replace(tzinfo=timezone.utc)
+        end_date = (
+            sorted_versions[i + 1] 
+            if i + 1 < len(sorted_versions) 
+            else datetime.max.replace(tzinfo=timezone.utc)
+        )
         periods.append((start_date, end_date))
     return periods
 
 
-def _assign_events_to_periods(events: List[Dict], time_periods: List[Tuple[datetime, datetime]]) -> Dict[Tuple[datetime, datetime], List[Dict]]:
+def _assign_events_to_periods(
+        events: List[Dict], 
+        time_periods: List[Tuple[datetime, datetime]]
+) -> Dict[Tuple[datetime, datetime], List[Dict]]:
     """Assign each event to its corresponding time period."""
     events_by_period = {period: [] for period in time_periods}
 
@@ -163,13 +170,6 @@ def _parse_event_date(date_str: str) -> datetime | None:
         except ValueError:
             return None
 
-
-import argparse
-from datetime import datetime
-from typing import List, Dict
-# Assume EventProcessor, ActionMapper, ActivityMapper, load_json_file, save_to_jsonl_file, split_events_by_mapping_versions, find_valid_mappings are imported
-
-
 def main():
     """Parse arguments and run the event-to-activity mapping pipeline."""
     args = _parse_args()
@@ -185,16 +185,60 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Process GitHub events into structured activities."
     )
-    parser.add_argument('--raw-events', required=True, help="Path to the folder containing raw events.")
-    parser.add_argument('--output-actions', required=True, help="Path to the output file for mapped actions.")
-    parser.add_argument('--output-activities', required=True, help="Path to the output file for mapped activities.")
-    parser.add_argument('--actors-to-remove', nargs='*', default=[], help="List of actors to remove from the raw events.")
-    parser.add_argument('--repos-to-remove', nargs='*', default=[], help="List of repositories to remove from the raw events.")
-    parser.add_argument('--orgs-to-remove', nargs='*', default=[], help="List of organizations to remove from the raw events.")
-    parser.add_argument('--platform', default='github', help="Platform to use for mapping (default: github).")
-    parser.add_argument('--disable-progress-bar', action='store_false', dest='progress_bar', help="Disable the progress bar display.")
-    parser.add_argument('--custom-action-mapping', default=None, help='Path to a custom event to action mapping JSON file.')
-    parser.add_argument('--custom-activity-mapping', default=None, help='Path to a custom action to activity mapping JSON file.')
+    parser.add_argument(
+        '--raw-events', 
+        required=True, 
+        help="Path to the folder containing raw events."
+    )
+    parser.add_argument(
+        '--output-actions', 
+        required=True, 
+        help="Path to the output file for mapped actions."
+    )
+    parser.add_argument(
+        '--output-activities', 
+        required=True, 
+        help="Path to the output file for mapped activities."
+    )
+    parser.add_argument(
+        '--actors-to-remove', 
+        nargs='*', 
+        default=[], 
+        help="List of actors to remove from the raw events."
+    )
+    parser.add_argument(
+        '--repos-to-remove', 
+        nargs='*', 
+        default=[], 
+        help="List of repositories to remove from the raw events."
+    )
+    parser.add_argument(
+        '--orgs-to-remove', 
+        nargs='*', 
+        default=[], 
+        help="List of organizations to remove from the raw events."
+    )
+    parser.add_argument(
+        '--platform', 
+        default='github', 
+        help="Platform to use for mapping (default: github)."
+    )
+    parser.add_argument(
+        '--disable-progress-bar', 
+        action='store_false', 
+        dest='progress_bar', 
+        help="Disable the progress bar display."
+    )
+    parser.add_argument(
+        '--custom-action-mapping', 
+        default=None, 
+        help='Path to a custom event to action mapping JSON file.'
+    )
+    parser.add_argument(
+        '--custom-activity-mapping', 
+        default=None, 
+        help='Path to a custom action to activity mapping JSON file.'
+    )
     return parser.parse_args()
 
 
@@ -202,7 +246,12 @@ def _process_events(args: argparse.Namespace) -> (List[Dict], List[Dict]):
     """Process raw events into actions and activities."""
     print("Step 0: Preprocessing events...")
     processor = EventProcessor(args.platform, progress_bar=args.progress_bar)
-    events = processor.process(args.raw_events, args.actors_to_remove, args.repos_to_remove, args.orgs_to_remove)
+    events = processor.process(
+        args.raw_events, 
+        args.actors_to_remove, 
+        args.repos_to_remove, 
+        args.orgs_to_remove
+    )
 
     # If custom mappings provided, skip automatic mapping
     if args.custom_action_mapping and args.custom_activity_mapping:
@@ -226,7 +275,10 @@ def _process_events(args: argparse.Namespace) -> (List[Dict], List[Dict]):
     return all_actions, all_activities
 
 
-def _apply_custom_mappings(events: List[Dict], args: argparse.Namespace) -> (List[Dict], List[Dict]):
+def _apply_custom_mappings(
+        events: List[Dict], 
+        args: argparse.Namespace
+) -> (List[Dict], List[Dict]):
     """Apply custom action and activity mappings if provided."""
     print("Using custom mappings, skipping automatic mapping detection...")
     all_actions, all_activities = [], []
@@ -252,7 +304,14 @@ def _apply_custom_mappings(events: List[Dict], args: argparse.Namespace) -> (Lis
     return all_actions, all_activities
 
 
-def _process_period(period_events: List[Dict], period_start: datetime, period_end: datetime, args: argparse.Namespace, all_actions: List[Dict], all_activities: List[Dict]):
+def _process_period(
+        period_events: List[Dict], 
+        period_start: datetime, 
+        period_end: datetime, 
+        args: argparse.Namespace, 
+        all_actions: List[Dict], 
+        all_activities: List[Dict]
+):
     """Process events for a single time period."""
     print(f"\nProcessing period: {period_start} to {period_end}")
     print(f"  Events in period: {len(period_events)}")
@@ -280,7 +339,12 @@ def _process_period(period_events: List[Dict], period_start: datetime, period_en
     all_activities.extend(activities)
 
 
-def _save_results(all_actions: List[Dict], all_activities: List[Dict], output_actions: str, output_activities: str):
+def _save_results(
+        all_actions: List[Dict], 
+        all_activities: List[Dict], 
+        output_actions: str, 
+        output_activities: str
+):
     if all_actions:
         save_to_jsonl_file(all_actions, output_actions)
         print(f"\nTotal {len(all_actions)} actions saved to: {output_actions}")
