@@ -85,27 +85,9 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
 
         return filtered_events
 
-    @staticmethod
-    def _remove_unwanted_actors(events: List[Dict], actors_to_remove: List[str]) -> List[Dict]:
-        """Filters out events belonging to unwanted actors."""
-        return [e for e in events if e.get('actor', {}).get('login') not in actors_to_remove]
-
-    @staticmethod
-    def _remove_unwanted_repos(events: List[Dict], repos_to_remove: List[str]) -> List[Dict]:
-        """Filters out events belonging to unwanted repositories."""
-        return [e for e in events if e.get('repo', {}).get('name') not in repos_to_remove]
-
-    @staticmethod
-    def _remove_unwanted_orgs(events: List[Dict], orgs_to_remove: List[str]) -> List[Dict]:
-        """Filters out events belonging to unwanted organizations."""
-        return [e for e in events if e.get('org', {}).get('login') not in orgs_to_remove]
-
     def process(
         self,
-        input_path: str,
-        actors_to_remove: List[str],
-        repos_to_remove: List[str],
-        orgs_to_remove: List[str]
+        input_path: str
     ) -> List[Dict]:
         """
         Processes an input file or directory of files.
@@ -129,24 +111,14 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
                 path = os.path.join(input_path, filename)
                 events = self._load_events(path)
                 all_events.extend(
-                    self._apply_filters(
-                        events,
-                        actors_to_remove,
-                        repos_to_remove,
-                        orgs_to_remove,
-                    )
+                    self._apply_filters(events)
                 )
 
         elif os.path.isfile(input_path):
             # Process single file
             events = self._load_events(input_path)
             all_events.extend(
-                self._apply_filters(
-                    events,
-                    actors_to_remove,
-                    repos_to_remove,
-                    orgs_to_remove,
-                )
+                self._apply_filters(events)
             )
 
         return all_events
@@ -163,10 +135,7 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
 
         raise ValueError(f"Unsupported JSON structure in: {path}")
 
-    def _apply_filters(self, events, actors, repos, orgs):
-        events = self._remove_unwanted_actors(events, actors)
-        events = self._remove_unwanted_repos(events, repos)
-        events = self._remove_unwanted_orgs(events, orgs)
+    def _apply_filters(self, events):
 
         if self.platform == "github":
             events = self._filter_redundant_review_events(events)

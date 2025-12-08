@@ -169,24 +169,6 @@ def _parse_args() -> argparse.Namespace:
         help="Path to the output file for mapped activities."
     )
     parser.add_argument(
-        '--actors-to-remove',
-        nargs='*',
-        default=[],
-        help="List of actors to remove from the raw events."
-    )
-    parser.add_argument(
-        '--repos-to-remove',
-        nargs='*',
-        default=[],
-        help="List of repositories to remove from the raw events."
-    )
-    parser.add_argument(
-        '--orgs-to-remove',
-        nargs='*',
-        default=[],
-        help="List of organizations to remove from the raw events."
-    )
-    parser.add_argument(
         '--platform',
         default='github',
         help="Platform to use for mapping (default: github)."
@@ -214,12 +196,7 @@ def _process_events(args: argparse.Namespace) -> (List[Dict], List[Dict]):
     """Process raw events into actions and activities."""
     print("Step 0: Preprocessing events...")
     processor = EventProcessor(args.platform, progress_bar=args.progress_bar)
-    events = processor.process(
-        args.raw_events,
-        args.actors_to_remove,
-        args.repos_to_remove,
-        args.orgs_to_remove
-    )
+    events = processor.process(args.raw_events)
 
     # If custom mappings provided, skip automatic mapping
     if args.custom_action_mapping and args.custom_activity_mapping:
