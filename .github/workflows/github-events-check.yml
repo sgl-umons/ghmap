@@ -1,0 +1,35 @@
+name: GitHub Events Check
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # runs daily at 00:00 UTC
+  workflow_dispatch:     # allows manual trigger
+
+jobs:
+  check-events:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Fetch latest GitHub events
+        run: |
+          curl -s "https://api.github.com/events?per_page=100&page=1" -o events.json
+
+      - name: Run GHMap mapping (strict mode)
+        run: |
+          python -m ghmap.cli \
+            --raw-events events.json \
+            --output-actions actions.json \
+            --output-activities activities.json \
+            --mapping-strategy strict
