@@ -189,6 +189,16 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help='Path to a custom action to activity mapping JSON file.'
     )
+    parser.add_argument(
+        '--mapping-strategy',
+        choices=['strict', 'flexible'],
+        default='flexible',
+        help=(
+            "Mapping strategy to handle unknown actions. "
+            "'strict' raises an error on UnknownAction, "
+            "'flexible' issues a warning once and continues (default: flexible)."
+        )
+    )
     return parser.parse_args()
 
 
@@ -228,7 +238,7 @@ def _apply_custom_mappings(
     if args.custom_action_mapping:
         action_mapping = load_json_file(args.custom_action_mapping)
         action_mapper = ActionMapper(action_mapping, progress_bar=args.progress_bar)
-        all_actions = action_mapper.map(events)
+        all_actions = action_mapper.map(events, args.mapping_strategy)
 
     if args.custom_activity_mapping:
         activity_mapping = load_json_file(args.custom_activity_mapping)
@@ -269,7 +279,7 @@ def _process_period(
     # Step 1: Event to Action Mapping
     action_mapping = load_json_file(valid_mappings['action'])
     action_mapper = ActionMapper(action_mapping, progress_bar=args.progress_bar)
-    actions = action_mapper.map(period_events)
+    actions = action_mapper.map(period_events, args.mapping_strategy)
 
     # Step 2: Action to Activity Mapping
     activity_mapping = load_json_file(valid_mappings['activity'])
