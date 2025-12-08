@@ -142,9 +142,9 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
                 return json.load(file)
             else:
                 return [json.loads(line) for line in file]
-            
+
         raise ValueError(f"Unsupported JSON structure in: {path}")
-    
+
     def _apply_filters(self, events, actors, repos, orgs):
         events = self._remove_unwanted_actors(events, actors)
         events = self._remove_unwanted_repos(events, repos)
