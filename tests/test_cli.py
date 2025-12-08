@@ -41,7 +41,8 @@ def test_ghmap_cli_customized_mapping():
             "--output-actions", os.path.join(tmpdir, "actions.jsonl"),
             "--output-activities", os.path.join(tmpdir, "activities.jsonl"),
             "--custom-action-mapping", os.path.join(sample_dir, "custom-event-to-action.json"),
-            "--custom-activity-mapping", os.path.join(sample_dir, "custom-action-to-activity.json")
+            "--custom-activity-mapping", os.path.join(sample_dir, "custom-action-to-activity.json"),
+            "--platform", "gitlab"
         ], check=True)
 
         assert filecmp.cmp(

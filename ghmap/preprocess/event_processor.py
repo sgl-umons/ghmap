@@ -11,7 +11,7 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
     A class to process events, removing unwanted events and filtering redundant review events.
     """
 
-    def __init__(self, platform: str = 'GitHub', progress_bar: bool = True):
+    def __init__(self, platform: str = 'github', progress_bar: bool = True):
         self.platform = platform
         self.progress_bar = progress_bar
         self.processed_ids = set()
@@ -85,60 +85,59 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
 
         return filtered_events
 
-    @staticmethod
-    def _remove_unwanted_actors(events: List[Dict], actors_to_remove: List[str]) -> List[Dict]:
-        """Filters out events belonging to unwanted actors."""
-        return [e for e in events if e.get('actor', {}).get('login') not in actors_to_remove]
-
-    @staticmethod
-    def _remove_unwanted_repos(events: List[Dict], repos_to_remove: List[str]) -> List[Dict]:
-        """Filters out events belonging to unwanted repositories."""
-        return [e for e in events if e.get('repo', {}).get('name') not in repos_to_remove]
-
-    @staticmethod
-    def _remove_unwanted_orgs(events: List[Dict], orgs_to_remove: List[str]) -> List[Dict]:
-        """Filters out events belonging to unwanted organizations."""
-        return [e for e in events if e.get('org', {}).get('login') not in orgs_to_remove]
-
     def process(
-            self,
-            input_folder: str,
-            actors_to_remove: List[str],
-            repos_to_remove: List[str],
-            orgs_to_remove: List[str]
+        self,
+        input_path: str
     ) -> List[Dict]:
         """
-        Processes the input folder or file, applies filters, and returns the cleaned events.
+        Processes an input file or directory of files.
+        Supports:
+            - JSON list     → [ {}, {}, ... ]
+            - JSON object   → { ... }
+            - JSON lines    → {} \n {} \n {}
+            - directory containing .json files
         """
-        all_processed_events = []
 
-        if os.path.isdir(input_folder):
-            for filename in tqdm(sorted(os.listdir(input_folder)), desc="Processing event files",
-                                 disable=not self.progress_bar):
-                if filename.endswith('.json'):
-                    file_path = os.path.join(input_folder, filename)
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        events = json.load(f)
+        all_events = []
 
-                    events = self._remove_unwanted_actors(events, actors_to_remove)
-                    events = self._remove_unwanted_repos(events, repos_to_remove)
-                    events = self._remove_unwanted_orgs(events, orgs_to_remove)
-                    if self.platform == 'GitHub':
-                        events = self._filter_redundant_review_events(events)
+        if os.path.isdir(input_path):
+            # Process every .json file in the directory
+            files = sorted(f for f in os.listdir(input_path) if f.endswith(".json"))
+            for filename in tqdm(
+                files,
+                desc="Processing event files",
+                disable=not self.progress_bar,
+            ):
+                path = os.path.join(input_path, filename)
+                events = self._load_events(path)
+                all_events.extend(
+                    self._apply_filters(events)
+                )
 
-                    all_processed_events.extend(events)
+        elif os.path.isfile(input_path):
+            # Process single file
+            events = self._load_events(input_path)
+            all_events.extend(
+                self._apply_filters(events)
+            )
 
-        elif os.path.isfile(input_folder):
-            with tqdm(total=1, desc="Processing event file"):
-                with open(input_folder, 'r', encoding='utf-8') as f:
-                    events = json.load(f)
+        return all_events
 
-                events = self._remove_unwanted_actors(events, actors_to_remove)
-                events = self._remove_unwanted_repos(events, repos_to_remove)
-                events = self._remove_unwanted_orgs(events, orgs_to_remove)
-                if self.platform == 'GitHub':
-                    events = self._filter_redundant_review_events(events)
+    def _load_events(self, path: str) -> List[Dict]:
+        """Loads events from JSON, JSON list, or JSON lines."""
+        with open(path, 'r', encoding='utf-8') as file:
+            first_char = file.read(1)
+            file.seek(0)
+            if first_char == '[':
+                return json.load(file)
 
-                all_processed_events.extend(events)
+            return [json.loads(line) for line in file]
 
-        return all_processed_events
+        raise ValueError(f"Unsupported JSON structure in: {path}")
+
+    def _apply_filters(self, events):
+
+        if self.platform == "github":
+            events = self._filter_redundant_review_events(events)
+
+        return events
