@@ -130,8 +130,8 @@ def _create_time_periods(sorted_versions: List[datetime]) -> List[Tuple[datetime
     periods = []
     for i, start_date in enumerate(sorted_versions):
         end_date = (
-            sorted_versions[i + 1] 
-            if i + 1 < len(sorted_versions) 
+            sorted_versions[i + 1]
+            if i + 1 < len(sorted_versions)
             else datetime.max.replace(tzinfo=timezone.utc)
         )
         periods.append((start_date, end_date))
@@ -139,7 +139,7 @@ def _create_time_periods(sorted_versions: List[datetime]) -> List[Tuple[datetime
 
 
 def _assign_events_to_periods(
-        events: List[Dict], 
+        events: List[Dict],
         time_periods: List[Tuple[datetime, datetime]]
 ) -> Dict[Tuple[datetime, datetime], List[Dict]]:
     """Assign each event to its corresponding time period."""
@@ -186,57 +186,57 @@ def _parse_args() -> argparse.Namespace:
         description="Process GitHub events into structured activities."
     )
     parser.add_argument(
-        '--raw-events', 
-        required=True, 
+        '--raw-events',
+        required=True,
         help="Path to the folder containing raw events."
     )
     parser.add_argument(
-        '--output-actions', 
-        required=True, 
+        '--output-actions',
+        required=True,
         help="Path to the output file for mapped actions."
     )
     parser.add_argument(
-        '--output-activities', 
-        required=True, 
+        '--output-activities',
+        required=True,
         help="Path to the output file for mapped activities."
     )
     parser.add_argument(
-        '--actors-to-remove', 
-        nargs='*', 
-        default=[], 
+        '--actors-to-remove',
+        nargs='*',
+        default=[],
         help="List of actors to remove from the raw events."
     )
     parser.add_argument(
-        '--repos-to-remove', 
-        nargs='*', 
-        default=[], 
+        '--repos-to-remove',
+        nargs='*',
+        default=[],
         help="List of repositories to remove from the raw events."
     )
     parser.add_argument(
-        '--orgs-to-remove', 
-        nargs='*', 
-        default=[], 
+        '--orgs-to-remove',
+        nargs='*',
+        default=[],
         help="List of organizations to remove from the raw events."
     )
     parser.add_argument(
-        '--platform', 
-        default='github', 
+        '--platform',
+        default='github',
         help="Platform to use for mapping (default: github)."
     )
     parser.add_argument(
-        '--disable-progress-bar', 
-        action='store_false', 
-        dest='progress_bar', 
+        '--disable-progress-bar',
+        action='store_false',
+        dest='progress_bar',
         help="Disable the progress bar display."
     )
     parser.add_argument(
-        '--custom-action-mapping', 
-        default=None, 
+        '--custom-action-mapping',
+        default=None,
         help='Path to a custom event to action mapping JSON file.'
     )
     parser.add_argument(
-        '--custom-activity-mapping', 
-        default=None, 
+        '--custom-activity-mapping',
+        default=None,
         help='Path to a custom action to activity mapping JSON file.'
     )
     return parser.parse_args()
@@ -247,9 +247,9 @@ def _process_events(args: argparse.Namespace) -> (List[Dict], List[Dict]):
     print("Step 0: Preprocessing events...")
     processor = EventProcessor(args.platform, progress_bar=args.progress_bar)
     events = processor.process(
-        args.raw_events, 
-        args.actors_to_remove, 
-        args.repos_to_remove, 
+        args.raw_events,
+        args.actors_to_remove,
+        args.repos_to_remove,
         args.orgs_to_remove
     )
 
@@ -276,7 +276,7 @@ def _process_events(args: argparse.Namespace) -> (List[Dict], List[Dict]):
 
 
 def _apply_custom_mappings(
-        events: List[Dict], 
+        events: List[Dict],
         args: argparse.Namespace
 ) -> (List[Dict], List[Dict]):
     """Apply custom action and activity mappings if provided."""
@@ -305,11 +305,11 @@ def _apply_custom_mappings(
 
 
 def _process_period(
-        period_events: List[Dict], 
-        period_start: datetime, 
-        period_end: datetime, 
-        args: argparse.Namespace, 
-        all_actions: List[Dict], 
+        period_events: List[Dict],
+        period_start: datetime,
+        period_end: datetime,
+        args: argparse.Namespace,
+        all_actions: List[Dict],
         all_activities: List[Dict]
 ):
     """Process events for a single time period."""
@@ -340,9 +340,9 @@ def _process_period(
 
 
 def _save_results(
-        all_actions: List[Dict], 
-        all_activities: List[Dict], 
-        output_actions: str, 
+        all_actions: List[Dict],
+        all_activities: List[Dict],
+        output_actions: str,
         output_activities: str
 ):
     if all_actions:
