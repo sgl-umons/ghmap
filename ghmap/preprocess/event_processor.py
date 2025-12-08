@@ -158,7 +158,7 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
             file.seek(0)
             if first_char == '[':
                 return json.load(file)
-            
+
             return [json.loads(line) for line in file]
 
         raise ValueError(f"Unsupported JSON structure in: {path}")

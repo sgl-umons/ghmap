@@ -1,7 +1,6 @@
 """Command-line interface for the GitHub Event Mapping Tool."""
 
 import argparse
-import json
 from pathlib import Path
 from datetime import datetime, timezone
 from importlib.resources import files
@@ -270,7 +269,9 @@ def _process_events(args: argparse.Namespace) -> (List[Dict], List[Dict]):
     for (period_start, period_end), period_events in events_by_period.items():
         if not period_events:
             continue
-        _process_period(period_events, period_start, period_end, args, all_actions, all_activities)
+        actions, activities = _process_period(period_events, period_start, period_end, args)
+        all_actions.extend(actions)
+        all_activities.extend(activities)
 
     return all_actions, all_activities
 
@@ -308,11 +309,9 @@ def _process_period(
         period_events: List[Dict],
         period_start: datetime,
         period_end: datetime,
-        args: argparse.Namespace,
-        all_actions: List[Dict],
-        all_activities: List[Dict]
-):
-    """Process events for a single time period."""
+        args: argparse.Namespace
+) -> tuple[List[Dict], List[Dict]]:
+    """Process events for a single time period and return actions and activities."""
     print(f"\nProcessing period: {period_start} to {period_end}")
     print(f"  Events in period: {len(period_events)}")
 
@@ -320,8 +319,8 @@ def _process_period(
     valid_mappings = find_valid_mappings(args.platform, period_mid)
 
     if not valid_mappings['action'] or not valid_mappings['activity']:
-        print(f"  Warning: No valid mappings found for this period. Skipping.")
-        return
+        print("  Warning: No valid mappings found for this period. Skipping.")
+        return [], []
 
     print(f"  Using action mapping: {valid_mappings['action'].name}")
     print(f"  Using activity mapping: {valid_mappings['activity'].name}")
@@ -330,13 +329,13 @@ def _process_period(
     action_mapping = load_json_file(valid_mappings['action'])
     action_mapper = ActionMapper(action_mapping, progress_bar=args.progress_bar)
     actions = action_mapper.map(period_events)
-    all_actions.extend(actions)
 
     # Step 2: Action to Activity Mapping
     activity_mapping = load_json_file(valid_mappings['activity'])
     activity_mapper = ActivityMapper(activity_mapping, progress_bar=args.progress_bar)
     activities = activity_mapper.map(actions)
-    all_activities.extend(activities)
+
+    return actions, activities
 
 
 def _save_results(
