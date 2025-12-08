@@ -93,7 +93,9 @@ def find_valid_mappings(platform: str, event_date: datetime) -> Dict[str, Path]:
     }
 
 
-def split_events_by_mapping_versions(events: List[Dict], platform: str) -> Dict[Tuple[datetime, datetime], List[Dict]]:
+def split_events_by_mapping_versions(
+    events: List[Dict], platform: str
+) -> Dict[Tuple[datetime, datetime], List[Dict]]:
     """Split events into time periods based on available mapping versions."""
     config_dir = Path(files("ghmap").joinpath("config"))
 
@@ -120,7 +122,11 @@ def split_events_by_mapping_versions(events: List[Dict], platform: str) -> Dict[
     time_periods = []
     for i, version_date in enumerate(sorted_versions):
         start_date = version_date
-        end_date = sorted_versions[i + 1] if i + 1 < len(sorted_versions) else datetime.max.replace(tzinfo=timezone.utc)
+        end_date = (
+            sorted_versions[i + 1]
+            if i + 1 < len(sorted_versions)
+            else datetime.max.replace(tzinfo=timezone.utc)
+        )
         time_periods.append((start_date, end_date))
 
     # Split events into periods

@@ -121,15 +121,33 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
         if os.path.isdir(input_path):
             # Process every .json file in the directory
             files = sorted(f for f in os.listdir(input_path) if f.endswith(".json"))
-            for filename in tqdm(files, desc="Processing event files", disable=not self.progress_bar):
+            for filename in tqdm(
+                files,
+                desc="Processing event files",
+                disable=not self.progress_bar,
+            ):
                 path = os.path.join(input_path, filename)
                 events = self._load_events(path)
-                all_events.extend(self._apply_filters(events, actors_to_remove, repos_to_remove, orgs_to_remove))
+                all_events.extend(
+                    self._apply_filters(
+                        events,
+                        actors_to_remove,
+                        repos_to_remove,
+                        orgs_to_remove,
+                    )
+                )
 
         elif os.path.isfile(input_path):
             # Process single file
             events = self._load_events(input_path)
-            all_events.extend(self._apply_filters(events, actors_to_remove, repos_to_remove, orgs_to_remove))
+            all_events.extend(
+                self._apply_filters(
+                    events,
+                    actors_to_remove,
+                    repos_to_remove,
+                    orgs_to_remove,
+                )
+            )
 
         return all_events
 
