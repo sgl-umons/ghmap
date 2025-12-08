@@ -176,9 +176,9 @@ class ActionMapper: # pylint: disable=too-few-public-methods
                     raise ValueError(
                         f"UnknownAction encountered for event: {event_record}"
                     )
-                elif mapping_strategy == "flexible":
+                if mapping_strategy == "flexible":
                     if not unknown_warning_issued:
-                        print("Warning: Some actions were not identified and mapped as UnknownAction.")
+                        print("Warning: Some actions not identified and mapped as UnknownAction.")
                         unknown_warning_issued = True
 
                     mapped_action = self._extract_attributes(
