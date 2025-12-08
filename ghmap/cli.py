@@ -202,6 +202,16 @@ def main():
         dest='progress_bar',
         help="Disable the progress bar display."
     )
+    parser.add_argument(
+        '--custom-action-mapping',
+        default=None,
+        help='Path to a custom event to action mapping JSON file.'
+    )
+    parser.add_argument(
+        '--custom-activity-mapping',
+        default=None,
+        help='Path to a custom action to activity mapping JSON file.'
+    )
     args = parser.parse_args()
 
     try:
@@ -218,6 +228,37 @@ def main():
             args.repos_to_remove,
             args.orgs_to_remove
         )
+
+        # Step 0.5: Apply custom mappings if provided
+        if args.custom_action_mapping and args.custom_activity_mapping:
+            print("Using custom mappings, skipping automatic mapping detection...")
+
+            # Load custom action mapping if provided
+            if args.custom_action_mapping:
+                action_mapping = load_json_file(args.custom_action_mapping)
+                action_mapper = ActionMapper(action_mapping, progress_bar=args.progress_bar)
+                all_actions = action_mapper.map(events)
+            else:
+                all_actions = []  # or keep empty
+
+            # Load custom activity mapping if provided
+            if args.custom_activity_mapping:
+                activity_mapping = load_json_file(args.custom_activity_mapping)
+                activity_mapper = ActivityMapper(activity_mapping, progress_bar=args.progress_bar)
+                all_activities = activity_mapper.map(all_actions)
+            else:
+                all_activities = []
+
+            # Save results immediately and exit
+            if all_actions:
+                save_to_jsonl_file(all_actions, args.output_actions)
+                print(f"Total {len(all_actions)} actions saved to: {args.output_actions}")
+
+            if all_activities:
+                save_to_jsonl_file(all_activities, args.output_activities)
+                print(f"Total {len(all_activities)} activities saved to: {args.output_activities}")
+
+            return  # Exit main, skip automatic mapping
         
         # Split events by mapping versions
         print(f"Splitting events by {args.platform} mapping versions...")
