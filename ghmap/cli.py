@@ -21,9 +21,6 @@ def extract_version_info(filename: str) -> Tuple[str, datetime]:
     base_name = filename.replace('.json', '')
     parts = base_name.split('_')
 
-    if len(parts) < 3:
-        raise ValueError(f"Invalid mapping filename format: {filename}")
-
     # Platform is first part
     platform = parts[0]
 
@@ -31,12 +28,7 @@ def extract_version_info(filename: str) -> Tuple[str, datetime]:
     version_str = parts[-1]
 
     # Parse ISO format date
-    try:
-        # Try with Z suffix
-        version_date = datetime.fromisoformat(version_str.replace('Z', '+00:00'))
-    except ValueError:
-        # Try without timezone info
-        version_date = datetime.fromisoformat(version_str)
+    version_date = datetime.fromisoformat(version_str.replace('Z', '+00:00'))
 
     return platform, version_date
 
@@ -50,20 +42,16 @@ def find_valid_mappings(platform: str, event_date: datetime) -> Dict[str, Path]:
     activity_mappings = {}
 
     for mapping_file in config_dir.glob(f"{platform}_*.json"):
-        try:
-            file_platform, version_date = extract_version_info(mapping_file.name)
+        file_platform, version_date = extract_version_info(mapping_file.name)
 
-            if file_platform != platform:
-                continue
-
-            # Determine mapping type
-            if "action" in mapping_file.name.lower():
-                action_mappings[version_date] = mapping_file
-            elif "activity" in mapping_file.name.lower():
-                activity_mappings[version_date] = mapping_file
-
-        except (ValueError, KeyError):
+        if file_platform != platform:
             continue
+
+        # Determine mapping type
+        if "action" in mapping_file.name.lower():
+            action_mappings[version_date] = mapping_file
+        elif "activity" in mapping_file.name.lower():
+            activity_mappings[version_date] = mapping_file
 
     # Find the latest mapping that's valid for the event date
     # (mapping version date <= event date)
@@ -100,9 +88,6 @@ def split_events_by_mapping_versions(
     config_dir = Path(files("ghmap").joinpath("config"))
 
     version_dates = _get_version_dates(config_dir, platform)
-    if not version_dates:
-        return {(datetime.min.replace(tzinfo=timezone.utc),
-                 datetime.max.replace(tzinfo=timezone.utc)): events}
 
     time_periods = _create_time_periods(sorted(version_dates))
     events_by_period = _assign_events_to_periods(events, time_periods)
@@ -115,12 +100,9 @@ def _get_version_dates(config_dir: Path, platform: str) -> set:
     """Retrieve all unique mapping version dates for a platform."""
     version_dates = set()
     for mapping_file in config_dir.glob(f"{platform}_*.json"):
-        try:
-            file_platform, version_date = extract_version_info(mapping_file.name)
-            if file_platform == platform:
-                version_dates.add(version_date)
-        except (ValueError, KeyError):
-            continue
+        file_platform, version_date = extract_version_info(mapping_file.name)
+        if file_platform == platform:
+            version_dates.add(version_date)
     return version_dates
 
 
@@ -146,8 +128,6 @@ def _assign_events_to_periods(
 
     for event in events:
         event_date = _parse_event_date(event.get('created_at'))
-        if not event_date:
-            continue
 
         for period_start, period_end in time_periods:
             if period_start <= event_date < period_end:
@@ -159,25 +139,14 @@ def _assign_events_to_periods(
 
 def _parse_event_date(date_str: str) -> datetime | None:
     """Parse the event date string into a datetime object."""
-    if not date_str:
-        return None
-    try:
-        return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-    except ValueError:
-        try:
-            return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S%z')
-        except ValueError:
-            return None
+    return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
 
 def main():
     """Parse arguments and run the event-to-activity mapping pipeline."""
     args = _parse_args()
 
-    try:
-        all_actions, all_activities = _process_events(args)
-        _save_results(all_actions, all_activities, args.output_actions, args.output_activities)
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        print(f"An error occurred: {e}")
+    all_actions, all_activities = _process_events(args)
+    _save_results(all_actions, all_activities, args.output_actions, args.output_activities)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -261,14 +230,9 @@ def _process_events(args: argparse.Namespace) -> (List[Dict], List[Dict]):
     all_activities = []
 
     events_by_period = split_events_by_mapping_versions(events, args.platform)
-    if not events_by_period:
-        print("No events to process after filtering.")
-        return all_actions, all_activities
 
     print(f"Found {len(events_by_period)} time period(s) based on mapping versions.")
     for (period_start, period_end), period_events in events_by_period.items():
-        if not period_events:
-            continue
         actions, activities = _process_period(period_events, period_start, period_end, args)
         all_actions.extend(actions)
         all_activities.extend(activities)
