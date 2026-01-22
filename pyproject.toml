@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ghmap"
-version = "1.0.6"
+version = "2.0.0"
 license = { text = "MIT License" }
 authors = [{ name = "Youness Hourri", email = "youness.hourri@umons.ac.be" }]
 description = "GitHub event mapping tool"
