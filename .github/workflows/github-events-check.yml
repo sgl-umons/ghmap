@@ -4,8 +4,8 @@ permissions:
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # runs daily at 00:00 UTC
-  workflow_dispatch:     # allows manual trigger
+    - cron: '0 0 * * 2'  # runs weekly on Tuesday at 00:00 UTC
+  workflow_dispatch:      # allows manual trigger
 
 jobs:
   check-events:
@@ -28,6 +28,13 @@ jobs:
         run: |
           curl -s "https://api.github.com/events?per_page=100&page=1" -o events.json
 
+      - name: Save raw events as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghmap-input-events
+          path: events.json
+          retention-days: 7
+
       - name: Run GHMap mapping (strict mode)
         run: |
           python -m ghmap.cli \
@@ -35,3 +42,12 @@ jobs:
             --output-actions actions.json \
             --output-activities activities.json \
             --mapping-strategy strict
+
+      - name: Save processed outputs as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghmap-output-data
+          path: |
+            actions.json
+            activities.json
+          retention-days: 7
