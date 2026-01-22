@@ -137,6 +137,10 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
 
     def _apply_filters(self, events):
 
+        # If no events to process
+        if not events:
+            return []
+
         if self.platform == "github":
             events = self._filter_redundant_review_events(events)
 
