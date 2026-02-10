@@ -12,8 +12,6 @@ from .mapping.activity_mapper import ActivityMapper
 from .utils import load_json_file, save_to_jsonl_file
 
 
-from datetime import datetime, timezone
-
 def extract_version_info(filename: str) -> Tuple[str, datetime]:
     """Extract platform and version date from mapping filename.
 
