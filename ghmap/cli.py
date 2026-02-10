@@ -16,7 +16,7 @@ def extract_version_info(filename: str) -> Tuple[str, datetime]:
     """Extract platform and version date from mapping filename.
 
     Expected format: {platform}_{type}_{date}.json
-    Example: github_action_2025-10-08T16:59:23Z.json
+    Example: github_action_20251008T165923Z.json (ISO 8601 Basic Format)
     """
     # Remove .json extension and split
     base_name = filename.replace('.json', '')
@@ -28,8 +28,15 @@ def extract_version_info(filename: str) -> Tuple[str, datetime]:
     # Version date is last part (after last underscore)
     version_str = parts[-1]
 
-    # Parse ISO format date
-    version_date = datetime.fromisoformat(version_str.replace('Z', '+00:00'))
+    # Parse ISO 8601 Basic Format: YYYYMMDDTHHMMSSZ
+    try:
+        version_date = datetime.strptime(version_str, '%Y%m%dT%H%M%SZ')
+        version_date = version_date.replace(tzinfo=timezone.utc)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid timestamp format: {version_str}. "
+            f"Expected format: YYYYMMDDTHHMMSSZ (e.g., 20251008T165923Z)"
+        ) from e
 
     return platform, version_date
 
