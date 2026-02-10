@@ -1,10 +1,11 @@
 """Command-line interface for the GitHub Event Mapping Tool."""
 
 import argparse
-from pathlib import Path
 from datetime import datetime, timezone
 from importlib.resources import files
+from pathlib import Path
 from typing import Dict, List, Tuple
+
 from .preprocess.event_processor import EventProcessor
 from .mapping.action_mapper import ActionMapper
 from .mapping.activity_mapper import ActivityMapper
