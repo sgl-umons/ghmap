@@ -35,7 +35,7 @@ ghmap = "ghmap.cli:main"
 packages = ["ghmap", "ghmap.preprocess", "ghmap.mapping"]
 
 [tool.setuptools.package-data]
-ghmap = ["config/event_to_action.json", "config/action_to_activity.json"]
+ghmap = ["config/*.json"]
 
 [tool.coverage.run]
 branch = true
