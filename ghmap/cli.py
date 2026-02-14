@@ -145,8 +145,10 @@ def _assign_events_to_periods(
     return events_by_period
 
 
-def _parse_event_date(date_str: str) -> datetime | None:
-    """Parse the event date string into a datetime object."""
+def _parse_event_date(date_str: str | int) -> datetime | None:
+    """Parse the event date string or timestamp into a datetime object."""
+    if isinstance(date_str, int):
+        return datetime.utcfromtimestamp(date_str / 1000)
     return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
 
 def main():
