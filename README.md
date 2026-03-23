@@ -15,506 +15,251 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![SWH](https://archive.softwareheritage.org/badge/origin/https://github.com/uhourri/ghmap/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/uhourri/ghmap)
 
-ghmap is a Python-based tool designed to process raw GitHub event data and convert it into higher-level, structured actions & activities that reflect contributors’ real intent. By transforming low-level events like PullRequestEvent, CreateEvent, and PushEvent into more meaningful actions and activities, ghmap makes it easier to analyze and understand contributor behavior in large GitHub repositories. Full mappings for events → actions and actions → activities can be found in [event_to_action.json](https://github.com/uhourri/ghmap/blob/main/ghmap/config/event_to_action.json) and [action_to_activity.json](https://github.com/uhourri/ghmap/blob/main/ghmap/config/action_to_activity.json)
+ghmap is a Python tool that transforms raw event data from software development platforms (GitHub, GitLab, etc.) into structured **actions** and **activities** reflecting contributors' real intent. By abstracting low‑level events like `PullRequestEvent`, `IssuesEvent` and `DeleteEvent` into meaningful operations, ghmap facilitates large‑scale analysis of contributor behavior, with main features:
 
-The dataset, **"A Dataset of Contributor Activities in the NumFocus Open-Source Community"**, was built using ghmap. It includes +2M activities from +180K contributors across 2.8K repositories and 58 projects over three years. Access it on [Zenodo](https://doi.org/10.5281/zenodo.14230406).
+- **Multi‑platform support** works with GitHub and GitLab; easily extensible to other platforms.
+- **Versioned mappings** automatically selects the correct mapping version based on event timestamps, accommodating platform API changes over time.
+- **Custom mappings** use your own JSON mapping files for platform‑specific or custom event structures.
 
+The **NumFocus Contributor Activities dataset** (available on [Zenodo](https://zenodo.org/records/14914741)) was built using ghmap. It contains over 2 million activities from 180,000+ contributors across 2,800 repositories and 58 projects over three years.
+
+---
 
 ## Repository Structure
 
-<pre><code>
 ```
 .
-├── LICENSE                       # Project license (MIT)
-├── README.md                     # Project overview and documentation
-├── ghmap/                        # Main Python package for GH mapping tool
-│   ├── __init__.py               # Marks ghmap as a Python package
-│   ├── cli.py                    # Command-line interface entry point
-│   ├── config/                   # JSON configs for event/action mappings
-│   │   ├── action_to_activity.json   # Rules to map actions → activities
-│   │   └── event_to_action.json      # Rules to map events → actions
-│   ├── mapping/                 # Logic for mapping events and actions
+├── LICENSE
+├── README.md
+├── ghmap/
+│   ├── __init__.py
+│   ├── cli.py                     # Command‑line interface
+│   ├── config/                    # JSON mapping files
+│   │   ├── github_action_20150101T000000Z.json
+│   │   ├── github_action_20251008T165923Z.json
+│   │   ├── github_activity_20150101T000000Z.json
+│   │   └── github_activity_20251008T165923Z.json
+│   ├── mapping/
 │   │   ├── __init__.py
-│   │   ├── action_mapper.py      # Maps raw events to high-level actions
-│   │   └── activity_mapper.py    # Groups actions into structured activities
-│   ├── preprocess/              # Event preprocessing logic
+│   │   ├── action_mapper.py       # Maps raw events → actions
+│   │   └── activity_mapper.py     # Groups actions → activities
+│   ├── preprocess/
 │   │   ├── __init__.py
-│   │   └── event_processor.py    # Cleans and filters GitHub events
-│   └── utils.py                  # Utility functions (load/save helpers)
-├── pyproject.toml                # Build system, dependencies, and metadata
-├── requirements.txt              # List of Python dependencies
-├── setup.py                      # Legacy install script for compatibility
-└── tests/                        # Test suite for CLI and mapping logic
-    ├── test_cli.py               # CLI integration test using sample data
-    └── data/                     # Test fixtures and expected outputs
-        ├── sample-events.json         # Input sample GitHub events
-        ├── expected-actions.jsonl     # Expected mapped actions
-        └── expected-activities.jsonl  # Expected final activities
+│   │   └── event_processor.py     # Platform‑aware preprocessing
+│   └── utils.py
+├── pyproject.toml
+├── requirements.txt
+├── setup.py
+└── tests/
+    ├── test_cli.py
+    └── data/                      # Test fixtures
+        ├── custom-*.json
+        └── sample-events.json
 ```
-</code></pre>
 
+---
 
 ## Installation
 
-To use this package, ensure you have the following installed:
-- Python 3.10 or later
+ghmap requires **Python 3.10 or later**. For best practices, install it in an isolated environment to keep your system clean.
 
-To use the ghmap tool, it's recommended to set up a virtual environment. Follow these steps to install the tool and its dependencies:
-
-### 1. Create a Virtual Environment
-If you haven't already, create a virtual environment for the project:
+### Option A: Using [uv](https://docs.astral.sh/uv/)
 
 ```bash
+# Find more details on how to install uv in its official documentation.
+uv tool install ghmap
+```
+
+### Option B: Using [venv](https://docs.python.org/3/library/venv.html)
+
+```bash
+# Create and activate a virtual environment
 python -m venv .venv
-```
+source .venv/bin/activate        # macOS/Linux
+# or
+.\.venv\Scripts\activate         # Windows
 
-### 2. Activate the Virtual Environment
-
-Activate the virtual environment. Depending on your operating system, use one of the following commands:
-- On macOS/Linux:
-```bash
-source .venv/bin/activate
-```
-
-- On Windows:
-```bash
-.\.venv\Scripts\activate
-```
-
-### 3. Install the Project Using pip
-
-Once the virtual environment is activated, you can install the project and its dependencies from the GitHub repository:
-```bash
+# Install ghmap from PyPI
 pip install ghmap
 ```
-This will install the tool along with its dependencies, including tqdm for progress tracking during long computations.
+
+---
 
 ## Usage
-Once installed, you can use the ghmap tool to process raw GitHub events. Here’s an example of how to run the tool:
+
 ```bash
-ghmap --raw-events /path/to/raw-events \
-      --output-actions /path/to/output-actions.jsonl \
-      --output-activities /path/to/output-activities.jsonl
+ghmap --raw-events /path/to/events-folder \
+      --output-actions /path/to/actions.jsonl \
+      --output-activities /path/to/activities.jsonl \
+      [--platform github] \
+      [--custom-action-mapping custom_event_to_action.json] \
+      [--custom-activity-mapping custom_action_to_activity.json] \
+      [--mapping-strategy flexible] \
+      [--disable-progress-bar]
 ```
 
-Arguments:
+| Argument | Description |
+|----------|-------------|
+| `--raw-events` | Path to a folder or file containing raw event data (JSON format). |
+| `--output-actions` | Path where mapped actions will be saved (JSON Lines format). |
+| `--output-activities` | Path where mapped activities will be saved (JSON Lines format). |
+| `--platform` | Platform identifier (e.g., `github`, `gitlab`). Default: `github`. |
+| `--custom-action-mapping` | Path to a custom event‑to‑action mapping JSON file. |
+| `--custom-activity-mapping` | Path to a custom action‑to‑activity mapping JSON file. |
+| `--mapping-strategy` | How to handle unknown actions: `strict` (raise error) or `flexible` (warn once). Default: `flexible`. |
+| `--disable-progress-bar` | Disable the progress bar display. |
 
-- --raw-events (Required): Path to the folder or file containing raw GitHub event data (.json format).
-- --output-actions (Required): Path to save the mapped actions (JSONL format).
-- --output-activities (Required): Path to save the mapped activities (JSONL format).
-- --actors-to-remove (Optional): List of actors (contributors) to exclude from the events.
-- --repos-to-remove (Optional): List of repositories to exclude from the events.
-- --orgs-to-remove (Optional): List of organizations to exclude from the events.
+**Note:** When custom mappings are provided, the automatic version‑based mapping is bypassed. This is useful for processing events from platforms other than GitHub or for using your own mapping definitions.
+
+---
+
+## Versioned Mapping System
+
+Mapping definitions are stored as timestamped JSON files in the `config/` directory:
+
+- `{platform}_action_YYYYMMDDTHHMMSSZ.json` maps raw events to actions
+- `{platform}_activity_YYYYMMDDTHHMMSSZ.json` groups actions into activities
+
+For each event, ghmap selects the **latest mapping version whose date is ≤ the event’s timestamp**. This ensures that historical events are interpreted according to the API schema valid at that time, while recent events use the most up‑to‑date mappings.
+
+---
+
+## Multi‑Platform Support
+
+The `--platform` argument and platform‑aware preprocessing allow ghmap to handle different event sources. Each mapping file includes a `platform` field in its metadata, enabling:
+
+- Correct field paths for `type`, `created_at`, etc.
+- Platform‑specific preprocessing (e.g., GitHub’s redundant review event filtering)
+- Skipping irrelevant steps for other platforms
+
+GitLab events, which have a different structure than GitHub events, can be processed by providing custom mappings and setting `--platform gitlab`.
+
+---
 
 ## Mapping Process
 
-### 1. Mapping GitHub Events to Actions
-Use the schema defined in `ghmap/config/event_to_action.json` to transform raw GitHub events into granular actions. The process is demonstrated in the `ghmap/mapping/action_mapper.py` script.
+### 1. Event‑to‑Action Mapping
 
-The **Event-to-Action Mapping** is the first step in transforming raw GitHub events into structured and standardized actions. This process establishes a one-to-one correspondence between GitHub event types and meaningful actions that represent specific contributor operations. The mapping leverages the metadata in each event’s payload to determine the action type and extract relevant details. with this mapping process :
+Each raw event is transformed into a structured **action** with a clear type and extracted details.
 
-#### 1. Raw GitHub Event
-
-A GitHub event represents an action taken by a contributor on the platform. Events are unstructured JSON objects containing various attributes, including the event type, metadata, and payload. For example:
-
+**Example raw event (IssuesEvent):**
 ```json
 {
-   "type":"IssuesEvent",
-   "public":true,
-   "payload":{
-      "action":"closed",
-      "issue":{
-         "url":"https://api.github.com/repos/JuliaLang/julia/issues/48062",
-         "repository_url":"https://api.github.com/repos/JuliaLang/julia",
-         "labels_url":"https://api.github.com/repos/JuliaLang/julia/issues/48062/labels{/name}",
-         "comments_url":"https://api.github.com/repos/JuliaLang/julia/issues/48062/comments",
-         "events_url":"https://api.github.com/repos/JuliaLang/julia/issues/48062/events",
-         "html_url":"https://github.com/JuliaLang/julia/issues/48062",
-         "id":1515182791,
-         "node_id":"I_kwDOABkWpM5aT9rH",
-         "number":48062,
-         "title":"Bad default number of BLAS threads on 1.9?",
-         "user":{
-            "login":"KristofferC",
-            "id":1282691,
-            "node_id":"MDQ6VXNlcjEyODI2OTE=",
-            "avatar_url":"https://avatars.githubusercontent.com/u/1282691?v=4",
-            "url":"https://api.github.com/users/KristofferC",
-            "html_url":"https://github.com/KristofferC",
-            "followers_url":"https://api.github.com/users/KristofferC/followers",
-            "following_url":"https://api.github.com/users/KristofferC/following{/other_user}",
-            "gists_url":"https://api.github.com/users/KristofferC/gists{/gist_id}",
-            "starred_url":"https://api.github.com/users/KristofferC/starred{/owner}{/repo}",
-            "subscriptions_url":"https://api.github.com/users/KristofferC/subscriptions",
-            "organizations_url":"https://api.github.com/users/KristofferC/orgs",
-            "repos_url":"https://api.github.com/users/KristofferC/repos",
-            "events_url":"https://api.github.com/users/KristofferC/events{/privacy}",
-            "received_events_url":"https://api.github.com/users/KristofferC/received_events",
-            "type":"User",
-            "site_admin":false
-         },
-         "labels":[
-            {
-               "id":61807486,
-               "node_id":"MDU6TGFiZWw2MTgwNzQ4Ng==",
-               "url":"https://api.github.com/repos/JuliaLang/julia/labels/linear%20algebra",
-               "name":"linear algebra",
-               "color":"f2b3db",
-               "default":false,
-               "description":"Linear algebra"
-            }
-         ],
-         "state":"closed",
-         "locked":false,
-         "assignee":null,
-         "assignees":[
-            
-         ],
-         "milestone":{
-            "url":"https://api.github.com/repos/JuliaLang/julia/milestones/44",
-            "html_url":"https://github.com/JuliaLang/julia/milestone/44",
-            "labels_url":"https://api.github.com/repos/JuliaLang/julia/milestones/44/labels",
-            "id":7729972,
-            "node_id":"MI_kwDOABkWpM4AdfM0",
-            "number":44,
-            "title":"1.9",
-            "description":"",
-            "creator":{
-               "login":"vtjnash",
-               "id":330950,
-               "node_id":"MDQ6VXNlcjMzMDk1MA==",
-               "avatar_url":"https://avatars.githubusercontent.com/u/330950?v=4",
-               "url":"https://api.github.com/users/vtjnash",
-               "html_url":"https://github.com/vtjnash",
-               "followers_url":"https://api.github.com/users/vtjnash/followers",
-               "following_url":"https://api.github.com/users/vtjnash/following{/other_user}",
-               "gists_url":"https://api.github.com/users/vtjnash/gists{/gist_id}",
-               "starred_url":"https://api.github.com/users/vtjnash/starred{/owner}{/repo}",
-               "subscriptions_url":"https://api.github.com/users/vtjnash/subscriptions",
-               "organizations_url":"https://api.github.com/users/vtjnash/orgs",
-               "repos_url":"https://api.github.com/users/vtjnash/repos",
-               "events_url":"https://api.github.com/users/vtjnash/events{/privacy}",
-               "received_events_url":"https://api.github.com/users/vtjnash/received_events",
-               "type":"User",
-               "site_admin":false
-            },
-            "open_issues":12,
-            "closed_issues":68,
-            "state":"open",
-            "created_at":"2022-03-02T19:34:37Z",
-            "updated_at":"2023-01-01T20:19:58Z",
-            "due_on":null,
-            "closed_at":null
-         },
-         "comments":1,
-         "created_at":"2022-12-31T18:49:47Z",
-         "updated_at":"2023-01-01T20:19:58Z",
-         "closed_at":"2023-01-01T20:19:57Z",
-         "author_association":"MEMBER",
-         "body":"Something looks strange with the number of BLAS threads on 1.9, I think.\n\n```julia\njulia> VERSION\nv\"1.9.0-beta2\"\n\njulia> LinearAlgebra.BLAS.get_num_threads()\n1\n```\n\n```julia\njulia> VERSION\nv\"1.8.4\"\n\njulia> LinearAlgebra.BLAS.get_num_threads()\n8\n```\n\nThis should just be with everything default.\n\ncc @staticfloat",
-         "reactions":{
-            "url":"https://api.github.com/repos/JuliaLang/julia/issues/48062/reactions",
-            "total_count":0,
-            "+1":0,
-            "-1":0,
-            "laugh":0,
-            "hooray":0,
-            "confused":0,
-            "heart":0,
-            "rocket":0,
-            "eyes":0
-         },
-         "timeline_url":"https://api.github.com/repos/JuliaLang/julia/issues/48062/timeline",
-         "performed_via_github_app":null,
-         "state_reason":"completed"
-      }
-   },
-   "repo":{
-      "id":1644196,
-      "name":"JuliaLang/julia",
-      "url":"https://api.github.com/repos/JuliaLang/julia"
-   },
-   "actor":{
-      "id":1282691,
-      "login":"KristofferC",
-      "avatar_url":"https://avatars.githubusercontent.com/u/1282691?",
-      "url":"https://api.github.com/users/KristofferC"
-   },
-   "org":{
-      "id":743164,
-      "login":"JuliaLang",
-      "avatar_url":"https://avatars.githubusercontent.com/u/743164?",
-      "url":"https://api.github.com/orgs/JuliaLang"
-   },
-   "created_at":1672604398000,
-   "id":"26170139709"
+  "type": "IssuesEvent",
+  "payload": { "action": "closed", "issue": { "id": 1515182791, "number": 16, "title": "..." } },
+  "actor": { "login": "uhourri", "id": 72564223 },
+  "repo": { "name": "uhourri/ghmap", "id": 899093732 },
+  "created_at": 1672604398000,
+  "id": "26170139709"
 }
 ```
 
-#### 2. Mapping Definition
-
-The mapping file defines rules to translate the raw event into a structured action. These rules specify:
-- The event type (IssuesEvent).
-- Optional payload conditions ("action": "closed").
-- Fields to extract and include in the resulting action.
-
-Mapping for the CloseIssue action is defined as follows:
+**Corresponding mapping definition (excerpt):**
 ```json
-"CloseIssue":{
-   "event":{
-      "type":"IssuesEvent",
-      "payload":{
-         "action":"closed"
+"CloseIssue": {
+  "event": {
+    "type": "IssuesEvent",
+    "payload": { "action": "closed" }
+  },
+  "attributes": {
+    "include_common_fields": true,
+    "details": {
+      "issue": {
+        "id": "payload.issue.id",
+        "number": "payload.issue.number",
+        "title": "payload.issue.title"
       }
-   },
-   "attributes":{
-      "include_common_fields":true,
-      "details":{
-         "issue":{
-            "id":"payload.issue.id",
-            "number":"payload.issue.number",
-            "title":"payload.issue.title",
-            "state":"payload.issue.state",
-            "author":{
-               "id":"payload.issue.user.id",
-               "login":"payload.issue.user.login"
-            },
-            "labels":[
-               {
-                  "name":"payload.issue.labels.name",
-                  "description":"payload.issue.labels.description"
-               }
-            ],
-            "created_date":"payload.issue.created_at",
-            "updated_date":"payload.issue.updated_at",
-            "closed_date":"payload.issue.closed_at"
-         }
-      }
-   }
+    }
+  }
 }
 ```
 
-#### 3. Resulting Action
-
-The raw event is transformed into a structured action. Common fields (e.g., event_id, actor, repository) and action-specific details (e.g., issue metadata) are included:
-
+**Resulting action:**
 ```json
 {
-   "action":"CloseIssue",
-   "event_id":"26170139709",
-   "date":"2023-01-01T20:19:58Z",
-   "actor":{
-      "id":1282691,
-      "login":"KristofferC"
-   },
-   "repository":{
-      "id":1644196,
-      "name":"JuliaLang/julia",
-      "organisation":"JuliaLang",
-      "organisation_id":743164
-   },
-   "details":{
-      "issue":{
-         "id":1515182791,
-         "number":48062,
-         "title":"Bad default number of BLAS threads on 1.9?",
-         "state":"closed",
-         "author":{
-            "id":1282691,
-            "login":"KristofferC"
-         },
-         "labels":[
-            {
-               "name":"linear algebra",
-               "description":"Linear algebra"
-            }
-         ],
-         "created_date":"2022-12-31T18:49:47Z",
-         "updated_date":"2023-01-01T20:19:58Z",
-         "closed_date":"2023-01-01T20:19:57Z"
-      }
-   }
+  "action": "CloseIssue",
+  "event_id": "26170139709",
+  "date": "2023-01-01T20:19:58Z",
+  "actor": { "id": 72564223, "login": "uhourri" },
+  "repository": { "id": 899093732, "name": "uhourri/ghmap" },
+  "details": { "issue": { "id": 1515182791, "number": 16, "title": "..." } }
 }
 ```
-### 2. Mapping Actions to Activities
 
-Use the schema defined in `ghmap/config/action_to_activity.json` to aggregate granular actions into high-level activities. This process is demonstrated in the `ghmap/mapping/activity_mapper.py` script.
+### 2. Action‑to‑Activity Mapping
 
-The **Action-to-Activity Mapping** is the second step in structuring GitHub contributor data. It builds on the Event-to-Action Mapping by grouping related actions into cohesive representations of high-level contributor tasks. Activities encapsulate the broader intent behind individual operations, making them valuable for understanding collaboration and task workflows. with the following mapping precess
+Related actions are grouped into a higher‑level **activity**, capturing a complete contributor task.
 
-#### 1. Actions as Input
-
-Actions, derived from the Event-to-Action Mapping process, serve as the input for this stage. These actions are structured JSON objects containing metadata and detailed attributes. For example:
-
+**Example activity definition:**
 ```json
 {
-   "action":"CloseIssue",
-   "event_id":"26163458157",
-   "date":"2023-01-01T00:06:24Z",
-   "actor":{
-      "id":15819577,
-      "login":"mem48"
-   },
-   "repository":{
-      "id":153765492,
-      "name":"ropensci/opentripplanner",
-      "organisation":"ropensci",
-      "organisation_id":1200269
-   },
-   "details":{
-      "issue":{
-         "id":755698614,
-         "number":78,
-         "title":"r5",
-         "state":"closed",
-         "author":{
-            "id":15819577,
-            "login":"mem48"
-         },
-         "labels":[
-            {
-               "name":"enhancement",
-               "description":"New feature or request"
-            }
-         ],
-         "created_date":"2020-12-02T23:54:39Z",
-         "updated_date":"2023-01-01T00:06:23Z",
-         "closed_date":"2023-01-01T00:06:23Z"
-      }
-   }
+  "name": "CloseIssue",
+  "time_window": "3s",
+  "actions": [
+    { "action": "CloseIssue", "optional": false, "repeat": false },
+    { "action": "CreateIssueComment", "optional": true, "repeat": false,
+      "validate_with": [
+        { "target_action": "CloseIssue",
+          "fields": [
+            { "field": "issue.number", "target_field": "issue.number" }
+          ]
+        }
+      ]
+    }
+  ]
 }
 ```
 
-#### 2. Mapping Definition
-
-The mapping file defines the logic for grouping actions into activities. It specifies:
-- The activity type (e.g., CloseIssue).
-- Required actions that must occur to form the activity (e.g., CloseIssue).
-- Optional actions that may provide additional context (e.g., CreateIssueComment).
-- Validation rules to ensure logical consistency (e.g., matching issue numbers between actions).
-
-Mapping for the CloseIssue action is defined as follows:
-
+**Resulting activity:**
 ```json
 {
-   "name":"CloseIssue",
-   "time_window":"3s",
-   "actions":[
-      {
-         "action":"CloseIssue",
-         "optional":false,
-         "repeat":false
-      },
-      {
-         "action":"CreateIssueComment",
-         "optional":true,
-         "repeat":false,
-         "validate_with":[
-            {
-               "target_action":"CloseIssue",
-               "fields":[
-                  {
-                     "field":"issue.number",
-                     "target_field":"issue.number"
-                  }
-               ]
-            }
-         ]
-      }
-   ]
+  "activity": "CloseIssue",
+  "start_date": "2023-01-01T00:06:24Z",
+  "end_date": "2023-01-01T00:06:26Z",
+  "actor": { "id": 72564223, "login": "uhourri" },
+  "repository": { "id": 899093732, "name": "uhourri/ghmap" },
+  "actions": [
+    { "action": "CloseIssue", ... },
+    { "action": "CreateIssueComment", ... }
+  ]
 }
 ```
 
-#### 3. Resulting Activity
+---
 
-A set of related actions is aggregated into a single activity. Each activity record contains:
-- Common fields (e.g., start_date, end_date, actor, repository).
-- The list of actions that make up the activity, maintaining traceability to the original operations.
+## Supported Actions & Activities
 
-```json
-{
-   "activity":"CloseIssue",
-   "start_date":"2023-01-01T00:06:24Z",
-   "end_date":"2023-01-01T00:06:24Z",
-   "actor":{
-      "id":15819577,
-      "login":"mem48"
-   },
-   "repository":{
-      "id":153765492,
-      "name":"ropensci/opentripplanner",
-      "organisation":"ropensci",
-      "organisation_id":1200269
-   },
-   "actions":[
-      {
-         "action":"CloseIssue",
-         "event_id":"26163458157",
-         "date":"2023-01-01T00:06:24Z",
-         "details":{
-            "issue":{
-               "id":755698614,
-               "number":78,
-               "title":"r5",
-               "state":"closed",
-               "author":{
-                  "id":15819577,
-                  "login":"mem48"
-               },
-               "labels":[
-                  {
-                     "name":"enhancement",
-                     "description":"New feature or request"
-                  }
-               ],
-               "created_date":"2020-12-02T23:54:39Z",
-               "updated_date":"2023-01-01T00:06:23Z",
-               "closed_date":"2023-01-01T00:06:23Z"
-            }
-         }
-      },
-      {
-         "action":"CreateIssueComment",
-         "event_id":"26163458136",
-         "date":"2023-01-01T00:06:24Z",
-         "details":{
-            "issue":{
-               "id":755698614,
-               "number":78,
-               "title":"r5",
-               "state":"closed",
-               "author":{
-                  "id":15819577,
-                  "login":"mem48"
-               },
-               "labels":[
-                  {
-                     "name":"enhancement",
-                     "description":"New feature or request"
-                  }
-               ],
-               "created_date":"2020-12-02T23:54:39Z",
-               "updated_date":"2023-01-01T00:06:23Z",
-               "closed_date":"2023-01-01T00:06:23Z"
-            },
-            "comment":{
-               "id":1368298302,
-               "position":1
-            }
-         }
-      }
-   ]
-}
+ghmap’s mappings cover a wide range of GitHub event types. Recent additions include:
+
+- **New event types:** `DiscussionEvent` (maps to `CreateDiscussion`)
+- **New actions for Issues and Pull Requests:** `labeled`, `unlabeled`, `assigned`, `unassigned`
+- **New actions for Pull Request Reviews:** `dismissed`, `updated`
+- **Grouped activities:** e.g., `ManageIssueAssignees` (combining assign/unassign actions within a time window)
+
+The exact set of actions and activities is defined in the versioned mapping files.
+
+---
+
+## Custom Mappings
+
+When processing events from a platform not covered by the built‑in mappings or when a different grouping logic is desired, you can provide your own JSON mapping files:
+
+```bash
+ghmap --raw-events gitlab-events/ \
+      --output-actions actions.jsonl \
+      --output-activities activities.jsonl \
+      --platform gitlab \
+      --custom-action-mapping my_event_to_action.json \
+      --custom-activity-mapping my_action_to_activity.json
 ```
 
-This step bridges the gap between granular operations and high-level task representations, enabling nuanced insights into contributor workflows.
-
+The custom mapping files must follow the same schema as the built‑in ones.
 
 ---
 
 ## Citation
 
-If you use this tool or dataset in your research, please cite:
+If you use ghmap or the NumFocus dataset in your research, please cite:
 
 ### 📄 Paper
 
@@ -546,15 +291,20 @@ If you use this tool or dataset in your research, please cite:
 }
 ```
 
+---
+
 ## Contributing
 
 Contributions are welcome! If you identify issues or have suggestions for improvement, please submit an issue or pull request.
+
+---
 
 ## License
 
 This project is licensed under the terms of the [MIT License](LICENSE).
 
-## Contact
+---
 
-For any questions or feedback, please contact [Youness Hourri](mailto:youness.hourri@umons.ac.be).
+## Credits
 
+**ghmap** is developed by [Youness Hourri](https://github.com/uhourri) at the [Software Engineering Lab](https://informatique-umons.be/genlog/) (SGL), [University of Mons](https://www.umons.ac.be) (UMONS), Belgium.
