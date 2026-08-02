@@ -1,7 +1,8 @@
 """Module to map GitHub actions to higher-level activities based on rules."""
 
 from datetime import datetime, timedelta
-from typing import List, Dict, Tuple, Any
+from typing import Any
+
 from tqdm import tqdm
 
 
@@ -15,13 +16,13 @@ class ActivityMapper: # pylint: disable=too-few-public-methods
         progress_bar (bool): Flag to enable or disable progress bar (tqdm).
     """
 
-    def __init__(self, activity_mapping: Dict, progress_bar: bool = True):
+    def __init__(self, activity_mapping: dict, progress_bar: bool = True):
         self.activity_mapping = self._preprocess_activities(activity_mapping)
         self.used_ids = set()
         self.progress_bar = progress_bar
 
     @staticmethod
-    def _preprocess_activities(activity_mapping: Dict) -> Dict:
+    def _preprocess_activities(activity_mapping: dict) -> dict:
         for activity in activity_mapping["activities"]:
             activity["time_window"] = timedelta(
                 seconds=int(activity["time_window"].replace("s", ""))
@@ -37,7 +38,7 @@ class ActivityMapper: # pylint: disable=too-few-public-methods
         return diff <= time_window
 
     @staticmethod
-    def _get_nested_value(data: Dict, field: str) -> Any:
+    def _get_nested_value(data: dict, field: str) -> Any:
         for key in field.split('.'):
             data = data.get(key)
             if data is None:
@@ -45,7 +46,7 @@ class ActivityMapper: # pylint: disable=too-few-public-methods
         return data
 
     @staticmethod
-    def _group_actions(actions: List[Dict]) -> Dict[Tuple[int, int], List[Dict]]:
+    def _group_actions(actions: list[dict]) -> dict[tuple[int, int], list[dict]]:
         grouped = {}
         for action in actions:
             key = (action["actor"]["id"], action["repository"]["id"])
@@ -54,7 +55,7 @@ class ActivityMapper: # pylint: disable=too-few-public-methods
             group.sort(key=lambda x: x["date"])
         return grouped
 
-    def _validate_gathered_actions(self, gathered: List[Dict], activity: Dict) -> Tuple[List[Dict], List[Dict]]: # pylint: disable=line-too-long
+    def _validate_gathered_actions(self, gathered: list[dict], activity: dict) -> tuple[list[dict], list[dict]]: # pylint: disable=line-too-long
         if len(gathered) == 1:
             return gathered, []
 
@@ -86,7 +87,7 @@ class ActivityMapper: # pylint: disable=too-few-public-methods
 
         return validated, invalid
 
-    def _gather_actions(self, actions: List[Dict], start_idx: int, activity: Dict) -> Tuple[List[Dict], int, List[Dict]]: # pylint: disable=line-too-long
+    def _gather_actions(self, actions: list[dict], start_idx: int, activity: dict) -> tuple[list[dict], int, list[dict]]: # pylint: disable=line-too-long
         gathered, preserved = [], []
         found_required = set()
         time_window = activity["time_window"]
@@ -122,7 +123,7 @@ class ActivityMapper: # pylint: disable=too-few-public-methods
         preserved.extend(invalid)
         return validated, start_idx + len(validated), preserved
 
-    def map(self, actions: List[Dict]) -> List[Dict]:
+    def map(self, actions: list[dict]) -> list[dict]:
         """Map actions to activities based on activity mapping configuration."""
         grouped = self._group_actions(actions)
         all_mapped_activities = []

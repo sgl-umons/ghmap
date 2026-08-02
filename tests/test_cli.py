@@ -1,9 +1,9 @@
 """Test the ghmap CLI with a sample input file and expected output."""
 
-import subprocess
 import filecmp
-import tempfile
 import os
+import subprocess
+import tempfile
 
 
 def test_ghmap_cli_on_sample():
