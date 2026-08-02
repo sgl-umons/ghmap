@@ -2,6 +2,7 @@
 
 import json
 
+
 def load_jsonl_file(file_path):
     """Load actions from a JSON Lines file."""
     with open(file_path, 'r', encoding='utf-8') as file:

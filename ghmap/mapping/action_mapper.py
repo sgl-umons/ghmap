@@ -2,8 +2,9 @@
 
 import json
 import re
-from datetime import datetime
-from typing import List, Dict, Any
+from datetime import datetime, timezone
+from typing import Any
+
 from tqdm import tqdm
 
 
@@ -18,7 +19,7 @@ class ActionMapper: # pylint: disable=too-few-public-methods
         progress_bar (bool): Flag to enable or disable progress bar (tqdm).
     """
 
-    def __init__(self, action_mapping: Dict, progress_bar: bool = True):
+    def __init__(self, action_mapping: dict, progress_bar: bool = True):
         self.action_mapping = action_mapping
         parameters = action_mapping.get('parameters', {})
         self.event_type_key = parameters.get('event_type_key', 'type')
@@ -26,13 +27,13 @@ class ActionMapper: # pylint: disable=too-few-public-methods
         self.progress_bar = progress_bar
 
     @staticmethod
-    def _deserialize_payload(event_record: Dict) -> Dict:
+    def _deserialize_payload(event_record: dict) -> dict:
         """Deserializes the 'payload' field of the event record if it's a string."""
         if isinstance(event_record['payload'], str):
             event_record['payload'] = json.loads(event_record['payload'])
         return event_record
 
-    def _convert_date_to_iso(self, event_record: Dict) -> Dict:
+    def _convert_date_to_iso(self, event_record: dict) -> dict:
         """Converts 'created_at' to ISO 8601 format if it's a Unix timestamp or string."""
         created_at = event_record.get(self.created_at_key)
         if isinstance(created_at, str):
@@ -41,10 +42,10 @@ class ActionMapper: # pylint: disable=too-few-public-methods
                 created_at = created_at.split('.')[0] + "Z"
             event_record[self.created_at_key] = datetime.strptime(
                 created_at, '%Y-%m-%dT%H:%M:%SZ'
-            ).strftime('%Y-%m-%dT%H:%M:%SZ')
+            ).replace(tzinfo=timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
         elif isinstance(created_at, int):
-            event_record[self.created_at_key] = datetime.utcfromtimestamp(
-                created_at / 1000
+            event_record[self.created_at_key] = datetime.fromtimestamp(
+                created_at / 1000, tz=timezone.utc
             ).strftime('%Y-%m-%dT%H:%M:%SZ')
         return event_record
 
@@ -73,8 +74,8 @@ class ActionMapper: # pylint: disable=too-few-public-methods
         return event_value == mapping_value
 
     def _extract_attributes(
-        self, event_record: Dict, action_details: Dict, action_name: str
-    ) -> Dict:
+        self, event_record: dict, action_details: dict, action_name: str
+    ) -> dict:
         """Extracts attributes and common fields from the event record."""
         mapped_action = {'action': action_name}
 
@@ -91,7 +92,7 @@ class ActionMapper: # pylint: disable=too-few-public-methods
 
         return mapped_action
 
-    def _extract_fields(self, event_record: Dict, field_mapping: Dict) -> Dict:
+    def _extract_fields(self, event_record: dict, field_mapping: dict) -> dict:
         """Extracts values from the event record using provided mappings."""
         extracted_data = {}
         for field_key, mapping_value in field_mapping.items():
@@ -109,9 +110,9 @@ class ActionMapper: # pylint: disable=too-few-public-methods
                 )
         return extracted_data
 
-    def _extract_list(self, event_record: Dict, list_mapping: list) -> list:
+    def _extract_list(self, event_record: dict, list_mapping: list) -> list:
         """Extracts a list of values from the event record."""
-        base_path = list_mapping[0][list(list_mapping[0].keys())[0]].split('.')[:-1]
+        base_path = list_mapping[0][next(iter(list_mapping[0].keys()))].split('.')[:-1]
         base_list = self._extract_field(event_record, base_path)
         if not isinstance(base_list, list):
             return []
@@ -124,7 +125,7 @@ class ActionMapper: # pylint: disable=too-few-public-methods
         ]
 
     @staticmethod
-    def _extract_field(event_record: Dict, field_path: str) -> Any:
+    def _extract_field(event_record: dict, field_path: str) -> Any:
         """Extracts a value from the event record using a dotted field path."""
         keys = field_path.split('.') if isinstance(field_path, str) else field_path
         value = event_record
@@ -136,7 +137,7 @@ class ActionMapper: # pylint: disable=too-few-public-methods
                 return None
         return value
 
-    def map(self, events: List[Dict], mapping_strategy: str = "flexible") -> List[Dict]:
+    def map(self, events: list[dict], mapping_strategy: str = "flexible") -> list[dict]:
         """
         Maps events to high-level actions using mapping configuration.
 

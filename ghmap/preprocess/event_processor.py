@@ -1,8 +1,8 @@
 """Preprocess module for filtering and cleaning GitHub events."""
 import json
 import os
-from datetime import datetime
-from typing import List, Dict
+from datetime import datetime, timezone
+
 from tqdm import tqdm
 
 
@@ -21,8 +21,8 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
     def _parse_time(timestamp: str | int) -> datetime:
         """Converts a Unix timestamp (in milliseconds) or ISO 8601 string to a datetime object."""
         if isinstance(timestamp, str):
-            return datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
-        return datetime.utcfromtimestamp(timestamp / 1000)
+            return datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+        return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)
 
     @staticmethod
     def _calculate_time_diff(start: datetime, end: datetime) -> float:
@@ -30,7 +30,7 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
         return (end - start).total_seconds()
 
     @staticmethod
-    def _is_within_time_window(event1: Dict, event2: Dict, window: int = 2) -> bool:
+    def _is_within_time_window(event1: dict, event2: dict, window: int = 2) -> bool:
         """Checks if event2 is within a specified time window (in seconds) of event1."""
         time_diff = abs(EventProcessor._calculate_time_diff(
             EventProcessor._parse_time(event1['created_at']),
@@ -38,7 +38,7 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
         ))
         return time_diff <= window
 
-    def _should_keep_event(self, current_event: Dict, events: List[Dict], index: int) -> bool:
+    def _should_keep_event(self, current_event: dict, events: list[dict], index: int) -> bool:
         """Determines whether the current event should be kept based on redundant review checks."""
         actor_id = current_event['actor']['id']
         repo_id = current_event['repo']['id']
@@ -61,7 +61,7 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
 
         return True
 
-    def _filter_redundant_review_events(self, events: List[Dict]) -> List[Dict]:
+    def _filter_redundant_review_events(self, events: list[dict]) -> list[dict]:
         """Filters out redundant PullRequestReviewEvent events."""
         filtered_events = []
         combined_events = self.pending_events + events
@@ -69,16 +69,15 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
 
         for i, event in enumerate(combined_events):
             if event['type'] == "PullRequestReviewEvent" and event['id'] not in self.processed_ids:
-                if self._should_keep_event(event, combined_events, i):
-                    if not (
-                            filtered_events and
-                            filtered_events[-1]['type'] == "PullRequestReviewEvent" and
-                            filtered_events[-1]['actor']['id'] == event['actor']['id'] and
-                            filtered_events[-1]['repo']['id'] == event['repo']['id'] and
-                            self._is_within_time_window(filtered_events[-1], event)
-                    ):
-                        filtered_events.append(event)
-                        self.processed_ids.add(event['id'])
+                if self._should_keep_event(event, combined_events, i) and not (
+                        filtered_events and
+                        filtered_events[-1]['type'] == "PullRequestReviewEvent" and
+                        filtered_events[-1]['actor']['id'] == event['actor']['id'] and
+                        filtered_events[-1]['repo']['id'] == event['repo']['id'] and
+                        self._is_within_time_window(filtered_events[-1], event)
+                ):
+                    filtered_events.append(event)
+                    self.processed_ids.add(event['id'])
             elif event['id'] not in self.processed_ids:
                 filtered_events.append(event)
                 self.processed_ids.add(event['id'])
@@ -88,7 +87,7 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
     def process(
         self,
         input_path: str
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Processes an input file or directory of files.
         Supports:
@@ -123,7 +122,7 @@ class EventProcessor:  # pylint: disable=too-few-public-methods
 
         return all_events
 
-    def _load_events(self, path: str) -> List[Dict]:
+    def _load_events(self, path: str) -> list[dict]:
         """Loads events from JSON, JSON list, or JSON lines."""
         with open(path, 'r', encoding='utf-8') as file:
             first_char = file.read(1)

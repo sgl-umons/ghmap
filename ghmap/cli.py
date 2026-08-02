@@ -4,15 +4,14 @@ import argparse
 from datetime import datetime, timezone
 from importlib.resources import files
 from pathlib import Path
-from typing import Dict, List, Tuple
 
-from .preprocess.event_processor import EventProcessor
 from .mapping.action_mapper import ActionMapper
 from .mapping.activity_mapper import ActivityMapper
+from .preprocess.event_processor import EventProcessor
 from .utils import load_json_file, save_to_jsonl_file
 
 
-def extract_version_info(filename: str) -> Tuple[str, datetime]:
+def extract_version_info(filename: str) -> tuple[str, datetime]:
     """Extract platform and version date from mapping filename.
 
     Expected format: {platform}_{type}_{date}.json
@@ -30,8 +29,7 @@ def extract_version_info(filename: str) -> Tuple[str, datetime]:
 
     # Parse ISO 8601 Basic Format: YYYYMMDDTHHMMSSZ
     try:
-        version_date = datetime.strptime(version_str, '%Y%m%dT%H%M%SZ')
-        version_date = version_date.replace(tzinfo=timezone.utc)
+        version_date = datetime.strptime(version_str, '%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc)
     except ValueError as e:
         raise ValueError(
             f"Invalid timestamp format: {version_str}. "
@@ -41,7 +39,7 @@ def extract_version_info(filename: str) -> Tuple[str, datetime]:
     return platform, version_date
 
 
-def find_valid_mappings(platform: str, event_date: datetime) -> Dict[str, Path]:
+def find_valid_mappings(platform: str, event_date: datetime) -> dict[str, Path]:
     """Find the valid mapping files for a given platform and event date."""
     config_dir = Path(files("ghmap").joinpath("config"))
 
@@ -89,8 +87,8 @@ def find_valid_mappings(platform: str, event_date: datetime) -> Dict[str, Path]:
 
 
 def split_events_by_mapping_versions(
-    events: List[Dict], platform: str
-) -> Dict[Tuple[datetime, datetime], List[Dict]]:
+    events: list[dict], platform: str
+) -> dict[tuple[datetime, datetime], list[dict]]:
     """Split events into time periods based on available mapping versions."""
 
     config_dir = Path(files("ghmap").joinpath("config"))
@@ -114,7 +112,7 @@ def _get_version_dates(config_dir: Path, platform: str) -> set:
     return version_dates
 
 
-def _create_time_periods(sorted_versions: List[datetime]) -> List[Tuple[datetime, datetime]]:
+def _create_time_periods(sorted_versions: list[datetime]) -> list[tuple[datetime, datetime]]:
     """Create time periods from sorted version dates."""
     periods = []
     for i, start_date in enumerate(sorted_versions):
@@ -128,9 +126,9 @@ def _create_time_periods(sorted_versions: List[datetime]) -> List[Tuple[datetime
 
 
 def _assign_events_to_periods(
-        events: List[Dict],
-        time_periods: List[Tuple[datetime, datetime]]
-) -> Dict[Tuple[datetime, datetime], List[Dict]]:
+        events: list[dict],
+        time_periods: list[tuple[datetime, datetime]]
+) -> dict[tuple[datetime, datetime], list[dict]]:
     """Assign each event to its corresponding time period."""
     events_by_period = {period: [] for period in time_periods}
 
@@ -148,7 +146,7 @@ def _assign_events_to_periods(
 def _parse_event_date(date_str: str | int) -> datetime | None:
     """Parse the event date string or timestamp into a datetime object."""
     if isinstance(date_str, int):
-        return datetime.utcfromtimestamp(date_str / 1000)
+        return datetime.fromtimestamp(date_str / 1000, tz=timezone.utc)
     return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
 
 def main():
@@ -212,7 +210,7 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _process_events(args: argparse.Namespace) -> (List[Dict], List[Dict]):
+def _process_events(args: argparse.Namespace) -> (list[dict], list[dict]):
     """Process raw events into actions and activities."""
     print("Step 0: Preprocessing events...")
     processor = EventProcessor(args.platform, progress_bar=args.progress_bar)
@@ -238,9 +236,9 @@ def _process_events(args: argparse.Namespace) -> (List[Dict], List[Dict]):
 
 
 def _apply_custom_mappings(
-        events: List[Dict],
+        events: list[dict],
         args: argparse.Namespace
-) -> (List[Dict], List[Dict]):
+) -> (list[dict], list[dict]):
     """Apply custom action and activity mappings if provided."""
     print("Using custom mappings, skipping automatic mapping detection...")
     all_actions, all_activities = [], []
@@ -267,11 +265,11 @@ def _apply_custom_mappings(
 
 
 def _process_period(
-        period_events: List[Dict],
+        period_events: list[dict],
         period_start: datetime,
         period_end: datetime,
         args: argparse.Namespace
-) -> tuple[List[Dict], List[Dict]]:
+) -> tuple[list[dict], list[dict]]:
     """Process events for a single time period and return actions and activities."""
     print(f"\nProcessing period: {period_start} to {period_end}")
     print(f"  Events in period: {len(period_events)}")
@@ -300,8 +298,8 @@ def _process_period(
 
 
 def _save_results(
-        all_actions: List[Dict],
-        all_activities: List[Dict],
+        all_actions: list[dict],
+        all_activities: list[dict],
         output_actions: str,
         output_activities: str
 ):
